@@ -95,7 +95,7 @@ const ResetButton = () => {
 
 const FilterSection = () => {
   return (
-    <div className="overflow-x-auto flex flex-row portrait:flex-col justify-between items-center px-4 py-4 bg-slate-900/5">
+    <div className="overflow-x-auto flex flex-row portrait:flex-col justify-between items-center px-4 py-4 bg-slate-900/5 gap-4">
       <div className="flex flex-row portrait:flex-col gap-4">
         <InputSearch />
         <FilterOptions />
