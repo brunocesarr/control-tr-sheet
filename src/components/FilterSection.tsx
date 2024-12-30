@@ -1,13 +1,13 @@
-import { SheetContext } from '@/contexts/useSheetContext'
-import { ChangeEvent, useContext, useState } from 'react'
+import { SheetContext } from '@/contexts/useSheetContext';
+import { ChangeEvent, useContext, useState } from 'react';
 
 const FilterOptions = () => {
-  const { filter, setFilter } = useContext(SheetContext)
+  const { filter, setFilter } = useContext(SheetContext);
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value
-    setFilter({ ...filter, status: value })
-  }
+    const value = e.target.value;
+    setFilter({ ...filter, status: value });
+  };
 
   return (
     <div>
@@ -16,8 +16,7 @@ const FilterOptions = () => {
         <select
           value={filter.status ?? ''}
           onChange={handleChange}
-          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 outline-none"
-        >
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 outline-none">
           <option disabled defaultValue="">
             {' '}
             -- Selecione uma opção --{' '}
@@ -28,16 +27,16 @@ const FilterOptions = () => {
         </select>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const InputSearch = () => {
-  const { filter, setFilter } = useContext(SheetContext)
+  const { filter, setFilter } = useContext(SheetContext);
 
   const handleSearchInput = (e: ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value
-    setFilter({ ...filter, keyword: inputValue })
-  }
+    const inputValue = e.target.value;
+    setFilter({ ...filter, keyword: inputValue });
+  };
 
   return (
     <div>
@@ -48,13 +47,11 @@ const InputSearch = () => {
             className="w-5 h-5 text-gray-500 dark:text-gray-400"
             fill="currentColor"
             viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+            xmlns="http://www.w3.org/2000/svg">
             <path
               fillRule="evenodd"
               d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-              clipRule="evenodd"
-            ></path>
+              clipRule="evenodd"></path>
           </svg>
         </div>
         <input
@@ -69,29 +66,28 @@ const InputSearch = () => {
         Pesquise por CPF, Nome, CIB ou Imóvel Rural
       </p>
     </div>
-  )
-}
+  );
+};
 
 const ResetButton = () => {
-  const { setFilter } = useContext(SheetContext)
+  const { setFilter } = useContext(SheetContext);
 
   const handleReset = () => {
     setFilter({
       keyword: '',
       hasDone: null,
       page: 1,
-    })
-  }
+    });
+  };
 
   return (
     <button
       onClick={handleReset}
-      className="font medium text-sm text-white bg-cyan-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]"
-    >
+      className="font medium text-sm text-white bg-cyan-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]">
       Listar todos
     </button>
-  )
-}
+  );
+};
 
 const FilterSection = () => {
   return (
@@ -102,7 +98,7 @@ const FilterSection = () => {
       </div>
       <ResetButton />
     </div>
-  )
-}
+  );
+};
 
-export { FilterSection }
+export { FilterSection };

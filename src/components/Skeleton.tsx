@@ -1,13 +1,9 @@
 interface ISekeletonProps {
-  className?: string
+  className?: string;
 }
 
 const Skeleton = ({ className }: ISekeletonProps) => {
-  return (
-    <div
-      className={`animate-pulse bg-gray-300 rounded-md w-full ${className}`}
-    />
-  )
-}
+  return <div className={`animate-pulse bg-gray-300 rounded-md w-full ${className}`} />;
+};
 
-export default Skeleton
+export default Skeleton;

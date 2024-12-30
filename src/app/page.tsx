@@ -1,13 +1,13 @@
-'use client'
+'use client';
 
-import { FilterSection } from '@/components/FilterSection'
-import Table from '@/components/Table'
+import { FilterSection } from '@/components/FilterSection';
+import Table from '@/components/Table';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import SheetProvider from '@/contexts/useSheetContext'
+import SheetProvider from '@/contexts/useSheetContext';
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 export default function Home() {
   return (
@@ -19,5 +19,5 @@ export default function Home() {
         </div>
       </SheetProvider>
     </QueryClientProvider>
-  )
+  );
 }
