@@ -20,6 +20,9 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@/assets/*": ["./src/assets/*"],
+      "@/configs/*": ["./src/configs/*"],
+      "@/contexts/*": ["./src/contexts/*"],
       "@/components/*": ["./src/components/*"],
       "@/interfaces/*": ["./src/interfaces/*"],
       "@/repositories/*": ["./src/repositories/*"],

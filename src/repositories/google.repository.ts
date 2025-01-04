@@ -14,8 +14,7 @@ const getSheet = async () => {
     const rows = await doc.sheetsByTitle["Lista de ITR's"].getRows();
     return rows;
   } catch (error) {
-    console.error(`Unknown error: ${error}`);
-    return [];
+    throw error;
   }
 };
 
