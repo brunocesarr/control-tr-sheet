@@ -91,6 +91,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await account.deleteSession('current');
       setLoggedInUser(null);
       Cookies.remove(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
+      router.push('/login');
     } catch (error) {
       throw error;
     } finally {

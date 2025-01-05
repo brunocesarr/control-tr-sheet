@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/home', request.url));
   }
 
-  const protectedRoutes = ['/home'];
+  const protectedRoutes = ['/home', '/profile'];
   const basePathApi = '/api/v1';
   const isProtectedRoute = protectedRoutes.some(
     (route) =>
@@ -25,5 +25,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/v1/:path*', '/home/:path*', '/'],
+  matcher: ['/api/v1/:path*', '/home/:path*', '/profile/:path*', '/'],
 };

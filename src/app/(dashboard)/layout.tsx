@@ -8,11 +8,9 @@ export default function Layout({
   children: React.ReactNode;
 }>) {
   return (
-    <>
-      <div className="flex h-full">
-        <Sidebar />
-        <div className="grow">{children}</div>
-      </div>
-    </>
+    <div className="flex h-full">
+      <Sidebar />
+      <div className="grow">{children}</div>
+    </div>
   );
 }

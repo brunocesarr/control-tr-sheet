@@ -32,7 +32,7 @@ const Sidebar = () => {
 
   return (
     <>
-      <div
+      <aside
         className={
           'w-fit min-h-screen sm:block hidden relative duration-300 border-r border-gray-600 p-5 bg-slate-900 shadow shadow-gray-900'
         }>
@@ -79,12 +79,12 @@ const Sidebar = () => {
             </span>
           </button>
         </div>
-      </div>
+      </aside>
       {/* Mobile Menu */}
       <div className="absolute top-0 left-0 p-2 sm:hidden block">
         <button
           onClick={() => setMobileMenu(!mobileMenu)}
-          className="flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white hover:bg-gray-800">
+          className="flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white bg-gray-900 hover:bg-gray-800">
           <span className="text-2xl">
             <GiHamburgerMenu />
           </span>
