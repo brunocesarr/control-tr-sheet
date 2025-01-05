@@ -49,19 +49,7 @@ const LoginPage = () => {
     setPasswordShow(!passwordShow);
   };
 
-  if (loggedInUser) {
-    return (
-      <div>
-        <p>Logged in as {loggedInUser.name}</p>
-        <button
-          type="button"
-          className="flex items-center justify-center w-full  min-h-[48px] cursor-pointer rounded-md transition center bg-cyan-900 hover:bg-cyan-800 hover:scale-105 mt-4"
-          onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-    );
-  }
+  if (loggedInUser) redirect('/home');
 
   return (
     <div className="flex flex-row text-base font-poppins bg-gray-700 text-white">

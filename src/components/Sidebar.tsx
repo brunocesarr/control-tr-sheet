@@ -10,7 +10,7 @@ import { GiHamburgerMenu } from 'react-icons/gi';
 import { AuthContext } from '@/contexts/useAuthContext';
 
 const Sidebar = () => {
-  const { logout } = useContext(AuthContext);
+  const { logout, loggedInUser } = useContext(AuthContext);
 
   const [open, setOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -20,6 +20,8 @@ const Sidebar = () => {
     { title: 'Dashboard', path: '/home', src: <MdDashboard /> },
     { title: 'Conta', path: '/profile', src: <CgProfile /> },
   ];
+
+  const isAdmin = loggedInUser?.labels.includes('admin');
 
   const handleLogout = async () => {
     try {
@@ -55,15 +57,16 @@ const Sidebar = () => {
             <ul>
               {Menus.map((menu, index) => (
                 <Link href={menu.path} key={index} className="w-full">
-                  <li
-                    className={`flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 mt-2 ${
+                  <button
+                    disabled={menu.path === '/home' && !isAdmin}
+                    className={`flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white mt-2 ${
                       pathname === menu.path && 'bg-gray-200 dark:bg-gray-700'
-                    }`}>
+                    } ${menu.path === '/home' && !isAdmin ? 'opacity-50' : 'hover:bg-gray-700'}`}>
                     <span className="text-2xl">{menu.src}</span>
                     <span className={`${!open && 'hidden'} origin-left duration-300 hover:block`}>
                       {menu.title}
                     </span>
-                  </li>
+                  </button>
                 </Link>
               ))}
             </ul>

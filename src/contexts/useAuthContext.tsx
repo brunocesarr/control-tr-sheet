@@ -13,6 +13,9 @@ interface IAuthContext {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateName: (newName: string) => Promise<void>;
+  updateEmail: (newEmail: string) => Promise<void>;
+  updatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -38,18 +41,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkLoggedInUser();
   }, []);
-
-  useEffect(() => {
-    const listenerLoggedUser = async () => {
-      if (loggedInUser) {
-        // save token
-      } else {
-        // delete token
-      }
-    };
-
-    listenerLoggedUser();
-  }, [loggedInUser]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -99,11 +90,53 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateName = async (newName: string) => {
+    try {
+      setIsLoading(true);
+      await account.updateName(newName);
+      const userInfo = await account.get();
+      setLoggedInUser(userInfo);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateEmail = async (newEmail: string) => {
+    try {
+      setIsLoading(true);
+      await account.updateEmail(newEmail, '123456789');
+      const userInfo = await account.get();
+      setLoggedInUser(userInfo);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updatePassword = async (oldPassword: string, newPassword: string) => {
+    try {
+      setIsLoading(true);
+      await account.updatePassword(newPassword, oldPassword);
+      const userInfo = await account.get();
+      setLoggedInUser(userInfo);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const providerValue = {
     loggedInUser,
     login,
     register,
     logout,
+    updateName,
+    updateEmail,
+    updatePassword,
     isLoading: isLoading,
   };
 
