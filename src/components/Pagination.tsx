@@ -51,8 +51,8 @@ const PaginatedNumbers = ({
             <button
               key={pageNumber}
               onClick={() => changePage(pageNumber)}
-              className={`bg-white ${
-                page === pageNumber ? 'bg-black text-white' : 'hover:bg-gray-50'
+              className={`${
+                page === pageNumber ? 'bg-gray-900 text-white' : 'hover:bg-gray-50'
               } border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
               {pageNumber}{' '}
             </button>
@@ -77,7 +77,7 @@ const PaginatedNumbers = ({
     <button
       key={totalPages}
       onClick={() => changePage(totalPages)}
-      className={`bg-white ${
+      className={`${
         page === totalPages ? 'bg-black text-white' : 'hover:bg-gray-50'
       } border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
       {totalPages}

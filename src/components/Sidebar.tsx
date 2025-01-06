@@ -8,14 +8,16 @@ import { PiSignOut } from 'react-icons/pi';
 import { MdDashboard } from 'react-icons/md';
 import { GiHamburgerMenu } from 'react-icons/gi';
 import { AuthContext } from '@/contexts/useAuthContext';
-import { ConfirmModal } from './CustomModals';
+import { AlertModal, ConfirmModal } from './CustomModals';
 
 const Sidebar = () => {
   const { logout, loggedInUser } = useContext(AuthContext);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [openAlertModal, setOpenAlertModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const pathname = usePathname();
 
   const Menus = [
@@ -30,7 +32,8 @@ const Sidebar = () => {
       await logout();
     } catch (error) {
       console.error(error);
-      alert('Erro ao realizar o logout.');
+      setErrorMessage('Erro ao realizar o logout.');
+      setOpenAlertModal(true);
     }
   };
 
@@ -123,6 +126,7 @@ const Sidebar = () => {
         modalDescription={'Deseja realmente sair?'}
         confirmAction={handleLogout}
       />
+      <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
     </>
   );
 };

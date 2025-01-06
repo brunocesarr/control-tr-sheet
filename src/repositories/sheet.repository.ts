@@ -41,4 +41,16 @@ async function updateTRStatus(range: string, newValue: boolean) {
   }
 }
 
-export { readManagerSheet, updateTRStatus };
+async function updateAllTRStatus(newValue: boolean) {
+  try {
+    const form = new FormData();
+    form.append('has_done', newValue.toString());
+
+    await apiManagerSheet.postForm('/api/v1/sheet/update-all-status', form);
+  } catch (error) {
+    console.error(`The API returned an error. Message: ${(error as Error).message}`);
+    throw error;
+  }
+}
+
+export { readManagerSheet, updateTRStatus, updateAllTRStatus };

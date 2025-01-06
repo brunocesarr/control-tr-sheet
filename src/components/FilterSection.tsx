@@ -83,8 +83,20 @@ const ResetButton = () => {
   return (
     <button
       onClick={handleReset}
-      className="font medium text-sm text-white bg-cyan-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]">
+      className="font-bold medium text-sm text-white bg-cyan-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]">
       Listar todos
+    </button>
+  );
+};
+
+const NoDeliveryStatusButton = () => {
+  const { updateAllToNoDeliveryStatus } = useContext(SheetContext);
+
+  return (
+    <button
+      onClick={updateAllToNoDeliveryStatus}
+      className="font-bold medium text-sm text-white bg-amber-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]">
+      Marcar todos como nao entregue
     </button>
   );
 };
@@ -96,7 +108,10 @@ const FilterSection = () => {
         <InputSearch />
         <FilterOptions />
       </div>
-      <ResetButton />
+      <div className="flex flex-row portrait:flex-col gap-4">
+        <NoDeliveryStatusButton />
+        <ResetButton />
+      </div>
     </div>
   );
 };
