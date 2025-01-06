@@ -1,7 +1,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useContext } from 'react';
 
 import { FilterSection } from '@/components/FilterSection';
@@ -14,8 +14,9 @@ const queryClient = new QueryClient();
 
 export default function Home() {
   const { loggedInUser } = useContext(AuthContext);
+  const router = useRouter();
 
-  if (loggedInUser && !loggedInUser.labels.includes('admin')) return redirect('/profile');
+  if (loggedInUser && !loggedInUser.labels.includes('admin')) return router.push('/profile');
 
   return (
     <QueryClientProvider client={queryClient}>
