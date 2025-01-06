@@ -76,7 +76,9 @@ export default function Profile() {
   const handleNewPassword = async () => {
     try {
       if (!validatePassword(newPassword)) {
-        setErrorMessage('Insira uma senha válido.');
+        setErrorMessage(
+          'Insira uma nova senha válida. Deve conter pelo menos 8 caracteres, uma letra maiúscula, uma letra minúscula, um número e um caractere especial.'
+        );
         setOpenAlertModal(true);
         return;
       }
