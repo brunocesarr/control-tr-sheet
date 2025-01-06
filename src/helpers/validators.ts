@@ -7,7 +7,9 @@ const validateEmail = (email: string) => {
 };
 
 const validatePassword = (password: string) => {
-  return String(password).match(/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,16}$/);
+  return String(password).match(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&])[A-Za-z\d@.#$!%*?&]{8,16}$/
+  );
 };
 
 const validateName = (name: string) => {

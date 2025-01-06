@@ -133,7 +133,14 @@ const RegisterPage = () => {
                 </div>
                 {!isValidCurrentPassword && (
                   <label className="mt-0.5 text-xs font-light text-red-600">
-                    Insira uma senha válida
+                    <div className="flex flex-col">
+                      <p>Insira uma senha válida. Deve conter pelo menos:</p>
+                      <li>8 a 16 caracteres</li>
+                      <li>Um número</li>
+                      <li>Uma letra maiúscula</li>
+                      <li>Uma letra minúscula</li>
+                      <li>Um caractere especial</li>
+                    </div>
                   </label>
                 )}
               </div>
