@@ -1,12 +1,13 @@
+import type { SheetRowData } from '@/interfaces/tr-sheet';
+
 import { apiManagerSheet } from './base/apiControlSheet';
-import { SheetRowData } from '@/interfaces/tr-sheet';
 
 async function readManagerSheet() {
   try {
     const { data } = await apiManagerSheet.get('/api/v1/sheet');
     if (!data || data.length === 0) throw 'Empty Sheet!';
 
-    let rowsData = data
+    const rowsData = data
       .map((row: any) => {
         return {
           cellRange: row.cellRange,
@@ -41,4 +42,16 @@ async function updateTRStatus(range: string, newValue: boolean) {
   }
 }
 
-export { readManagerSheet, updateTRStatus };
+async function updateAllTRStatus(newValue: boolean) {
+  try {
+    const form = new FormData();
+    form.append('has_done', newValue.toString());
+
+    await apiManagerSheet.postForm('/api/v1/sheet/update-all-status', form);
+  } catch (error) {
+    console.error(`The API returned an error. Message: ${(error as Error).message}`);
+    throw error;
+  }
+}
+
+export { readManagerSheet, updateAllTRStatus, updateTRStatus };

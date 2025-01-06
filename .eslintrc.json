@@ -1,0 +1,25 @@
+{
+  "extends": ["next/core-web-vitals", "plugin:prettier/recommended"],
+  "rules": {
+    "prettier/prettier": [
+      "error",
+      {
+        "printWidth": 100,
+        "tabWidth": 2,
+        "singleQuote": true,
+        "bracketSameLine": true,
+        "bracketSpacing": true,
+        "trailingComma": "es5",
+        "arrowParens": "always",
+        "semi": true,
+        "endOfLine": "auto"
+      }
+    ],
+    "@typescript-eslint/no-explicit-any": "off"
+  },
+  "settings": {
+    "tailwindcss": {
+      "callees": ["classnames", "clsx", "ctl", "cva", "tv", "cn"]
+    }
+  }
+}

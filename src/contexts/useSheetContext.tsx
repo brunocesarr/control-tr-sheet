@@ -1,16 +1,23 @@
 'use client';
 
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
-import { SheetRowData } from '@/interfaces/tr-sheet';
-import { updateTRStatus } from '@/repositories/sheet.repository';
-import { getManagerTable } from '@/services/sheet.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useEffect, useState } from 'react';
+import { Bounce, ToastContainer, toast } from 'react-toastify';
+
+import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+import type { SheetRowData } from '@/interfaces/tr-sheet';
+import { updateAllTRStatus, updateTRStatus } from '@/repositories/sheet.repository';
+import { getManagerTable } from '@/services/sheet.service';
 
 interface ISheetContext {
-  filter: any;
-  setFilter: ({}: any) => void;
+  filter: {
+    keyword?: string;
+    status?: string;
+    pageSize: number;
+  };
+  setFilter: ({}: { keyword?: string; status?: string; pageSize: number }) => void;
   updateStatus: (item: SheetRowData) => Promise<void>;
+  updateAllToNoDeliveryStatus: () => Promise<void>;
   response: SheetRowData[];
   isLoading: boolean;
 }
@@ -23,9 +30,9 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
   const [filter, setFilter] = useState<{
     keyword?: string;
     status?: string;
-    page: number;
+    pageSize: number;
   }>({
-    page: 1,
+    pageSize: 15,
   });
   const queryClient = useQueryClient();
 
@@ -34,17 +41,18 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
     data,
     error,
     isFetching,
+    isPending,
   } = useQuery({
     queryKey: [LocalStorageKeysCache.GOOGLE_SHEET_SERVICE_GET_TR_SHEET],
     queryFn: async () => {
-      return await getManagerTable();
+      return getManagerTable();
     },
     staleTime: 60 * 1000,
   });
 
   const mutation = useMutation({
     mutationFn: async () => {
-      return await getManagerTable();
+      return getManagerTable();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -54,7 +62,10 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
-    if (error && !isFetching) alert(error);
+    if (error && !isFetching) {
+      console.error(error);
+      toast.error('Erro ao carregar dados');
+    }
   }, [error, isFetching]);
 
   useEffect(() => {
@@ -69,6 +80,7 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
   }, [data, filter]);
 
   const filterValues = () => {
+    setIsLoading(true);
     let filteredSearch = data?.map((v) => v) ?? [];
 
     const { keyword, status } = filter;
@@ -93,8 +105,8 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
       if (status === 'nao entregue')
         filteredSearch = filteredSearch.filter((value) => !value.hasDone);
     }
-
     setFilteredValues(filteredSearch);
+    setIsLoading(false);
   };
 
   const updateStatus = async (item: SheetRowData) => {
@@ -103,7 +115,24 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
       await updateTRStatus(item.cellRange, !item.hasDone);
       await mutation.mutateAsync();
     } catch (error) {
-      alert('Internal error');
+      console.error(error);
+      toast.error('Erro ao atualizar status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateAllToNoDeliveryStatus = async () => {
+    try {
+      setIsLoading(true);
+      if (!data) return;
+
+      await updateAllTRStatus(false);
+      await mutation.mutateAsync();
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao atualizar status');
     } finally {
       setIsLoading(false);
     }
@@ -114,10 +143,28 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
     setFilter,
     response: filteredValues,
     updateStatus,
-    isLoading: isLoading || isLoadingData || isFetching,
+    updateAllToNoDeliveryStatus,
+    isLoading: isLoading || isLoadingData || isFetching || isPending,
   };
 
-  return <SheetContext.Provider value={providerValue}>{children}</SheetContext.Provider>;
+  return (
+    <SheetContext.Provider value={providerValue}>
+      {children}{' '}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Bounce}
+      />
+    </SheetContext.Provider>
+  );
 };
 
 export default SheetProvider;

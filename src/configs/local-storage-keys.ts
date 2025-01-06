@@ -8,4 +8,9 @@ export class LocalStorageKeysCache {
     .NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP
     ? `tr_sheet-title_${process.env.NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP}`
     : 'tr_sheet_title';
+
+  static readonly AUTHENTICATION_SESSION_USER_TR_SHEET: string = process.env
+    .NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP
+    ? `user_session_${process.env.NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP}`
+    : 'user_session';
 }
