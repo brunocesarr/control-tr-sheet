@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server';
 import { SheetRowData } from '@/interfaces/tr-sheet';
-import { getSheet, updateAllStatus, updateStatus } from '@/repositories/google.repository';
+import { getSheet, updateAllStatus } from '@/repositories/google.repository';
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       status: 204,
     });
   } catch (error) {
-    let errorMessage = (error as Error).message;
+    const errorMessage = (error as Error).message;
     return new Response(
       JSON.stringify({
         message: 'Internal Server Error',

@@ -11,10 +11,11 @@ export function Table() {
   const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
+    setPageSize(15);
     setPage(1);
   }, [response]);
 
-  const totalPages = Math.ceil(response.length / pageSize);
+  const totalPages = Math.ceil(response.length / 15);
 
   const renderBadge = (hasDone: boolean, status: string) => {
     if (!hasDone) {

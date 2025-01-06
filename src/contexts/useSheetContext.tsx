@@ -5,11 +5,15 @@ import { SheetRowData } from '@/interfaces/tr-sheet';
 import { updateAllTRStatus, updateTRStatus } from '@/repositories/sheet.repository';
 import { getManagerTable } from '@/services/sheet.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, use, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import { Bounce, toast, ToastContainer } from 'react-toastify';
 
 interface ISheetContext {
-  filter: any;
+  filter: {
+    keyword?: string;
+    status?: string;
+    pageSize: number;
+  };
   setFilter: ({}: any) => void;
   updateStatus: (item: SheetRowData) => Promise<void>;
   updateAllToNoDeliveryStatus: () => Promise<void>;
@@ -25,9 +29,9 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
   const [filter, setFilter] = useState<{
     keyword?: string;
     status?: string;
-    page: number;
+    pageSize: number;
   }>({
-    page: 1,
+    pageSize: 15,
   });
   const queryClient = useQueryClient();
 

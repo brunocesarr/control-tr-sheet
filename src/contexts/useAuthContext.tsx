@@ -3,13 +3,12 @@
 import { createContext, useEffect, useState } from 'react';
 import { account, ID } from '@/configs/appwrite';
 import { Models } from 'appwrite';
-import Loader from '@/components/Loader';
 import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 
 interface IAuthContext {
-  loggedInUser: Models.User<Models.Preferences>;
+  loggedInUser: Models.User<Models.Preferences> | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -24,7 +23,7 @@ export const AuthContext = createContext({} as IAuthContext);
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
+  const [loggedInUser, setLoggedInUser] = useState<Models.User<Models.Preferences> | null>(null);
 
   useEffect(() => {
     const checkLoggedInUser = async () => {
@@ -32,7 +31,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(true);
         const userInfo = await account.get();
         setLoggedInUser(userInfo);
-      } catch (error) {
+      } catch {
         setLoggedInUser(null);
       } finally {
         setIsLoading(false);

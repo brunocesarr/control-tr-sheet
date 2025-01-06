@@ -28,7 +28,7 @@ export async function GET() {
 
     return Response.json(response);
   } catch (error) {
-    let errorMessage = (error as Error).message;
+    const errorMessage = (error as Error).message;
     return new Response(
       JSON.stringify({
         message: 'Internal Server Error',
@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
       status: 204,
     });
   } catch (error) {
-    let errorMessage = (error as Error).message;
+    const errorMessage = (error as Error).message;
     return new Response(
       JSON.stringify({
         message: 'Internal Server Error',

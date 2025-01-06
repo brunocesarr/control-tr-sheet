@@ -23,7 +23,7 @@ export default function Home() {
       <SheetProvider>
         <div className="h-full w-full">
           <Navbar>
-            <p>Lista de ITR's</p>
+            <p>Lista de ITR{"'"}s</p>
           </Navbar>
           <FilterSection />
           <Table />
