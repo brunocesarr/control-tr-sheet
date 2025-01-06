@@ -25,7 +25,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (loggedInUser) router.push('/home');
-  }, [loggedInUser])
+  }, [loggedInUser]);
 
   const handleLogin = async () => {
     try {
