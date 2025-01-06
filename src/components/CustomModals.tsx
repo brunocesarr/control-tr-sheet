@@ -1,7 +1,7 @@
+import React, { useState } from 'react';
 import { LuCircleAlert } from 'react-icons/lu';
 
 import Modal from '@/components/Modal';
-import React, { useState } from 'react';
 
 interface AlertModalProps {
   open: boolean;
@@ -12,7 +12,7 @@ interface AlertModalProps {
 export function AlertModal({ open, setOpen, errorMessage }: AlertModalProps) {
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
-      <div className="text-center w-fit">
+      <div className="w-fit text-center">
         <LuCircleAlert size={48} className="mx-auto text-red-500" />
         <div className="mx-auto my-4 w-48">
           <h3 className="text-xl font-black text-gray-800">Ops...</h3>
@@ -21,7 +21,7 @@ export function AlertModal({ open, setOpen, errorMessage }: AlertModalProps) {
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setOpen(false)}
-            className="btn font-bold px-4 py-2 bg-white text-rose-600 hover:bg-rose-200 w-full rounded-md">
+            className="btn w-full rounded-md bg-white px-4 py-2 font-bold text-rose-600 hover:bg-rose-200">
             Fechar
           </button>
         </div>
@@ -43,31 +43,31 @@ export function InputModal({ open, setOpen, modalDescription, confirmValue }: In
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
       <div className="w-fit text-center">
-        <div className="flex flex-col it space-y-2 gap-2 w-full mt-4">
-          <label className="flex flex-col gap-2 w-full">
+        <div className="it mt-4 flex w-full flex-col gap-2 space-y-2">
+          <label className="flex w-full flex-col gap-2">
             <span className="text-base text-gray-500">{modalDescription}</span>
             <div className="relative flex overflow-hidden rounded-md border-2 transition focus-within:border-blue-600">
               <input
                 type="text"
-                className="w-full flex-shrink appearance-none border-gray-300 bg-white py-2 px-4 text-base text-gray-700 placeholder-gray-400 focus:outline-none"
+                className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
                 placeholder="Digite aqui..."
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
               />
             </div>
           </label>
-          <div className="flex flex-col items-center justify-center gap-1 w-full">
+          <div className="flex w-full flex-col items-center justify-center gap-1">
             <button
               onClick={() => {
                 confirmValue(value);
                 setOpen(false);
               }}
-              className="btn font-bold px-4 py-2 bg-gray-900 text-white hover:bg-gray-600 rounded-md w-full">
+              className="btn w-full rounded-md bg-gray-900 px-4 py-2 font-bold text-white hover:bg-gray-600">
               Confirmar
             </button>
             <button
               onClick={() => setOpen(false)}
-              className="btn font-bold px-4 py-2 bg-white text-rose-600 hover:bg-rose-200 rounded-md w-full">
+              className="btn w-full rounded-md bg-white px-4 py-2 font-bold text-rose-600 hover:bg-rose-200">
               Cancelar
             </button>
           </div>
@@ -93,23 +93,23 @@ export function ConfirmModal({
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
       <div className="w-fit text-center">
-        <div className="flex flex-col it space-y-2 gap-2 w-full mt-4">
-          <label className="flex flex-col gap-2 w-full">
+        <div className="it mt-4 flex w-full flex-col gap-2 space-y-2">
+          <label className="flex w-full flex-col gap-2">
             <LuCircleAlert size={48} className="mx-auto text-red-500" />
             <span className="text-base text-gray-500">{modalDescription}</span>
           </label>
-          <div className="flex flex-col items-center justify-center gap-1 w-full">
+          <div className="flex w-full flex-col items-center justify-center gap-1">
             <button
               onClick={() => {
                 confirmAction();
                 setOpen(false);
               }}
-              className="btn font-bold px-4 py-2 bg-gray-900 text-white hover:bg-gray-600 rounded-md w-full">
+              className="btn w-full rounded-md bg-gray-900 px-4 py-2 font-bold text-white hover:bg-gray-600">
               Confirmar
             </button>
             <button
               onClick={() => setOpen(false)}
-              className="btn font-bold px-4 py-2 bg-white text-rose-600 hover:bg-rose-200 rounded-md w-full">
+              className="btn w-full rounded-md bg-white px-4 py-2 font-bold text-rose-600 hover:bg-rose-200">
               Cancelar
             </button>
           </div>

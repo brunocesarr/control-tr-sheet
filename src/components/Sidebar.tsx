@@ -1,13 +1,14 @@
-import React, { useContext, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-
+import { usePathname } from 'next/navigation';
+import React, { useContext, useState } from 'react';
 import { BsArrowLeftCircle } from 'react-icons/bs';
 import { CgProfile } from 'react-icons/cg';
-import { PiSignOut } from 'react-icons/pi';
-import { MdDashboard } from 'react-icons/md';
 import { GiHamburgerMenu } from 'react-icons/gi';
+import { MdDashboard } from 'react-icons/md';
+import { PiSignOut } from 'react-icons/pi';
+
 import { AuthContext } from '@/contexts/useAuthContext';
+
 import { AlertModal, ConfirmModal } from './CustomModals';
 
 const Sidebar = () => {
@@ -39,24 +40,21 @@ const Sidebar = () => {
 
   return (
     <>
-      <aside
-        className={
-          'w-fit min-h-screen sm:block hidden relative duration-300 border-r border-gray-600 p-5 bg-slate-900 shadow shadow-gray-900'
-        }>
-        <div className="h-full flex flex-col items-stretch justify-between">
+      <aside className="relative hidden min-h-screen w-fit border-r border-gray-600 bg-slate-900 p-5 shadow shadow-gray-900 duration-300 sm:block">
+        <div className="flex h-full flex-col items-stretch justify-between">
           <div>
             <BsArrowLeftCircle
               className={`${
                 !open && 'rotate-180'
-              } absolute text-3xl rounded-full cursor-pointer top-9 -right-4 fill-gray-400 bg-gray-900`}
+              } absolute -right-4 top-9 cursor-pointer rounded-full bg-gray-900 fill-gray-400 text-3xl`}
               onClick={() => setOpen(!open)}
             />
             {open && (
               <Link href="/">
                 <div className={`flex flex-row ${open && 'gap-x-4'} items-center justify-end`}>
-                  <span className="text-xl font-medium whitespace-nowrap text-white">Painel</span>
+                  <span className="whitespace-nowrap text-xl font-medium text-white">Painel</span>
                 </div>
-                <hr className="h-[1px] my-2 border-t-0 bg-neutral-100" />
+                <hr className="my-2 h-px border-t-0 bg-neutral-100" />
               </Link>
             )}
             <ul>
@@ -64,7 +62,7 @@ const Sidebar = () => {
                 <Link href={menu.path} key={index} className="w-full">
                   <button
                     disabled={menu.path === '/home' && !isAdmin}
-                    className={`flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white mt-2 ${
+                    className={`mt-2 flex w-full cursor-pointer items-center gap-x-6 rounded-lg p-3 text-base font-normal text-white ${
                       pathname === menu.path && 'bg-gray-200 dark:bg-gray-700'
                     } ${menu.path === '/home' && !isAdmin ? 'opacity-50' : 'hover:bg-gray-700'}`}>
                     <span className="text-2xl">{menu.src}</span>
@@ -78,7 +76,7 @@ const Sidebar = () => {
           </div>
           <button
             onClick={() => setOpenConfirmModal(true)}
-            className="flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white hover:bg-gray-700">
+            className="flex w-full cursor-pointer items-center gap-x-6 rounded-lg p-3 text-base font-normal text-white hover:bg-gray-700">
             <span className="text-2xl">
               <PiSignOut />
             </span>
@@ -89,10 +87,10 @@ const Sidebar = () => {
         </div>
       </aside>
       {/* Mobile Menu */}
-      <div className="absolute top-0 left-0 p-2 sm:hidden block">
+      <div className="absolute left-0 top-0 block p-2 sm:hidden">
         <button
           onClick={() => setMobileMenu(!mobileMenu)}
-          className="flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white bg-gray-900 hover:bg-gray-800">
+          className="flex w-full cursor-pointer items-center gap-x-6 rounded-lg bg-gray-900 p-3 text-base font-normal text-white hover:bg-gray-800">
           <span className="text-2xl">
             <GiHamburgerMenu />
           </span>
@@ -102,28 +100,28 @@ const Sidebar = () => {
         <div
           className={`${
             mobileMenu ? 'flex' : 'hidden'
-          } absolute z-50 flex-col items-center self-end py-8 mt-16 space-y-6 font-bold sm:w-auto left-6 right-6 text-white bg-slate-900 drop-shadow md rounded-xl`}>
+          } md absolute inset-x-6 z-50 mt-16 flex-col items-center space-y-6 self-end rounded-xl bg-slate-900 py-8 font-bold text-white drop-shadow sm:w-auto`}>
           {Menus.map((menu, index) => (
             <Link href={menu.path} key={index} onClick={() => setMobileMenu(false)}>
               <span
                 className={` ${
                   pathname === menu.path && 'bg-gray-700'
-                } p-2 rounded-xl hover:bg-gray-700`}>
+                } rounded-xl p-2 hover:bg-gray-700`}>
                 {menu.title}
               </span>
             </Link>
           ))}
           <button
             onClick={() => setOpenConfirmModal(true)}
-            className="flex items-center justify-center w-full text-base font-bold rounded-lg cursor-pointer text-white">
-            <span className={'rounded-xl hover:bg-gray-200'}>Sair</span>
+            className="flex w-full cursor-pointer items-center justify-center rounded-lg text-base font-bold text-white">
+            <span className="rounded-xl hover:bg-gray-200">Sair</span>
           </button>
         </div>
       </div>
       <ConfirmModal
         open={openConfirmModal}
         setOpen={setOpenConfirmModal}
-        modalDescription={'Deseja realmente sair?'}
+        modalDescription="Deseja realmente sair?"
         confirmAction={handleLogout}
       />
       <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />

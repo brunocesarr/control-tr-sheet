@@ -1,4 +1,5 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import type { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 
 const URL_BASE_API_SHEET = process.env.NEXT_PUBLIC_URL_AMBIENTE_SERVER;
 

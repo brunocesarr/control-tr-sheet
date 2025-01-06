@@ -1,12 +1,13 @@
 'use client';
 
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
-import { SheetRowData } from '@/interfaces/tr-sheet';
-import { updateAllTRStatus, updateTRStatus } from '@/repositories/sheet.repository';
-import { getManagerTable } from '@/services/sheet.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useEffect, useState } from 'react';
-import { Bounce, toast, ToastContainer } from 'react-toastify';
+import { Bounce, ToastContainer, toast } from 'react-toastify';
+
+import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+import type { SheetRowData } from '@/interfaces/tr-sheet';
+import { updateAllTRStatus, updateTRStatus } from '@/repositories/sheet.repository';
+import { getManagerTable } from '@/services/sheet.service';
 
 interface ISheetContext {
   filter: {
@@ -44,14 +45,14 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
   } = useQuery({
     queryKey: [LocalStorageKeysCache.GOOGLE_SHEET_SERVICE_GET_TR_SHEET],
     queryFn: async () => {
-      return await getManagerTable();
+      return getManagerTable();
     },
     staleTime: 60 * 1000,
   });
 
   const mutation = useMutation({
     mutationFn: async () => {
-      return await getManagerTable();
+      return getManagerTable();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

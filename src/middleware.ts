@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+
 import { LocalStorageKeysCache } from './configs/local-storage-keys';
 
 export async function middleware(request: NextRequest) {

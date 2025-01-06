@@ -1,16 +1,16 @@
 'use client';
 
-import loginImg from '@/assets/log-in.svg';
-import eye from '@/assets/eye.svg';
-
-import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import Image from 'next/image';
+import { RedirectType, redirect } from 'next/navigation';
 import { useContext, useState } from 'react';
-import { AuthContext } from '@/contexts/useAuthContext';
-import { redirect, RedirectType } from 'next/navigation';
-import { AlertModal } from '@/components/CustomModals';
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { MdAlternateEmail } from 'react-icons/md';
 import { TbLockPassword } from 'react-icons/tb';
+
+import eye from '@/assets/eye.svg';
+import loginImg from '@/assets/log-in.svg';
+import { AlertModal } from '@/components/CustomModals';
+import { AuthContext } from '@/contexts/useAuthContext';
 import { validateEmail } from '@/helpers/validators';
 
 const LoginPage = () => {
@@ -31,7 +31,7 @@ const LoginPage = () => {
       }
       await login(email, password);
     } catch (error) {
-      console.error('Login:' + error);
+      console.error(`Login:${error}`);
       setErrorMessage('Erro ao realizar o login.');
       setOpenAlertModal(true);
     }
@@ -48,9 +48,9 @@ const LoginPage = () => {
   if (loggedInUser) redirect('/home');
 
   return (
-    <div className="flex flex-row text-base font-poppins bg-gray-700 text-white">
-      <div className="flex flex-col md:flex w-full md:flex-col">
-        <div className="flex flex-col p-8 gap-2 rounded-2xl md:bg-form md:w-[600px] md:m-auto bg-slate-800 shadow-md shadow-slate-400">
+    <div className="font-poppins flex flex-row bg-gray-700 text-base text-white">
+      <div className="flex w-full flex-col md:flex md:flex-col">
+        <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-800 p-8 shadow-md shadow-slate-400 md:m-auto md:w-[600px]">
           <div className="flex flex-col gap-3 self-start py-2">
             <div className="flex flex-row gap-4">
               <Image className="w-[24px]" src={loginImg} alt="Imagem de Login" />
@@ -61,13 +61,13 @@ const LoginPage = () => {
           <div className="flex flex-col py-2">
             <form className="flex flex-col gap-4">
               <div className="flex flex-col">
-                <label className="mb-2 font-bold text-base">E-mail</label>
-                <div className={`flex flex-col relative justify-center`}>
+                <label className="mb-2 text-base font-bold">E-mail</label>
+                <div className="relative flex flex-col justify-center">
                   <MdAlternateEmail
-                    className={`text-xl absolute left-2 ${email ? 'text-yellow-600' : 'text-gray-400'}`}
+                    className={`absolute left-2 text-xl ${email ? 'text-yellow-600' : 'text-gray-400'}`}
                   />
                   <input
-                    className="w-full rounded text-black border-2 border-white p-2 pl-8 outline-none bg-form hover:border-prim focus:border-amber-400"
+                    className="bg-form hover:border-prim w-full rounded border-2 border-white p-2 pl-8 text-black outline-none focus:border-amber-400"
                     type="email"
                     placeholder="Digite seu email"
                     onChange={(e) => setEmail(e.target.value)}
@@ -78,13 +78,13 @@ const LoginPage = () => {
               </div>
 
               <div className="flex flex-col">
-                <label className="mb-2 font-bold text-base">Senha</label>
-                <div className={'flex flex-col relative justify-center'}>
+                <label className="mb-2 text-base font-bold">Senha</label>
+                <div className="relative flex flex-col justify-center">
                   <TbLockPassword
-                    className={`text-xl absolute left-2 ${password ? 'text-yellow-600' : 'text-gray-400'}`}
+                    className={`absolute left-2 text-xl ${password ? 'text-yellow-600' : 'text-gray-400'}`}
                   />
                   <input
-                    className="w-full rounded border-2 border-white p-2 pl-8 outline-none hover:border-prim focus:border-amber-400 text-black"
+                    className="hover:border-prim w-full rounded border-2 border-white p-2 pl-8 text-black outline-none focus:border-amber-400"
                     type={passwordShow ? 'text' : 'password'}
                     placeholder="Digite sua senha"
                     value={password}
@@ -102,18 +102,18 @@ const LoginPage = () => {
               </div>
               <button
                 type="button"
-                className="flex items-center justify-center w-full min-h-[48px] cursor-pointer rounded-md transition center bg-cyan-900 hover:bg-cyan-800 mt-4 font-bold"
+                className="center mt-4 flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-md bg-cyan-900 font-bold transition hover:bg-cyan-800"
                 disabled={isLoading}
                 onClick={handleLogin}>
                 {isLoading ? (
-                  <AiOutlineLoading3Quarters className="text-white animate-spin" />
+                  <AiOutlineLoading3Quarters className="animate-spin text-white" />
                 ) : (
                   'Entrar'
                 )}
               </button>
             </form>
           </div>
-          <span className="flex w-full justify-end items-end gap-2 mb-4 text-base font-light">
+          <span className="mb-4 flex w-full items-end justify-end gap-2 text-base font-light">
             Não tem uma conta?{' '}
             <button type="button" className="font-bold text-blue-300" onClick={handleRegister}>
               Registre-se
@@ -121,7 +121,7 @@ const LoginPage = () => {
           </span>
         </div>
       </div>
-      <div className="hidden md:relative md:block w-4/12">
+      <div className="hidden w-4/12 md:relative md:block">
         <img
           className="md:h-screen md:w-screen md:object-cover"
           src="/img/login-img.jpg"

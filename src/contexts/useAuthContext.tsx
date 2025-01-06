@@ -1,11 +1,12 @@
 'use client';
 
-import { createContext, useEffect, useState } from 'react';
-import { account, ID } from '@/configs/appwrite';
-import { Models } from 'appwrite';
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+import type { Models } from 'appwrite';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
+import { createContext, useEffect, useState } from 'react';
+
+import { ID, account } from '@/configs/appwrite';
+import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
 
 interface IAuthContext {
   loggedInUser: Models.User<Models.Preferences> | null;
@@ -136,7 +137,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateName,
     updateEmail,
     updatePassword,
-    isLoading: isLoading,
+    isLoading,
   };
 
   return <AuthContext.Provider value={providerValue}>{children}</AuthContext.Provider>;

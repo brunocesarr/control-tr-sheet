@@ -14,4 +14,4 @@ const validateName = (name: string) => {
   return String(name).match(/^[a-zA-Z ]{2,30}$/);
 };
 
-export { validateEmail, validatePassword, validateName };
+export { validateEmail, validateName, validatePassword };

@@ -1,7 +1,6 @@
 /* This example requires Tailwind CSS v2.0+ */
 import { useState } from 'react';
-import { GoChevronLeft } from 'react-icons/go';
-import { GoChevronRight } from 'react-icons/go';
+import { GoChevronLeft, GoChevronRight } from 'react-icons/go';
 
 interface PaginatedNumbersProps {
   totalPages: number;
@@ -26,7 +25,7 @@ const PaginatedNumbers = ({
       onClick={() => changePage(1)}
       className={`${
         page === 1 ? 'bg-black text-white' : 'hover:bg-gray-50'
-      } border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
+      } relative inline-flex items-center border border-gray-300 px-4 py-2 text-sm font-medium`}>
       1
     </button>
   );
@@ -34,9 +33,9 @@ const PaginatedNumbers = ({
   if (minPageNumberLimit - 1 > 1) {
     paginateNumbers.push(
       <button
-        key={'leftDots'}
+        key="leftDots"
         disabled
-        className={`bg-white border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
+        className="relative inline-flex items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium">
         ...
       </button>
     );
@@ -53,11 +52,10 @@ const PaginatedNumbers = ({
               onClick={() => changePage(pageNumber)}
               className={`${
                 page === pageNumber ? 'bg-gray-900 text-white' : 'hover:bg-gray-50'
-              } border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
+              } relative inline-flex items-center border border-gray-300 px-4 py-2 text-sm font-medium`}>
               {pageNumber}{' '}
             </button>
           );
-        return;
       }
     });
   }
@@ -65,9 +63,9 @@ const PaginatedNumbers = ({
   if (maxPageNumberLimit + 1 < totalPages) {
     paginateNumbers.push(
       <button
-        key={'rightDots'}
+        key="rightDots"
         disabled
-        className={`bg-white border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
+        className="relative inline-flex items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium">
         ...
       </button>
     );
@@ -79,7 +77,7 @@ const PaginatedNumbers = ({
       onClick={() => changePage(totalPages)}
       className={`${
         page === totalPages ? 'bg-black text-white' : 'hover:bg-gray-50'
-      } border-gray-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium`}>
+      } relative inline-flex items-center border border-gray-300 px-4 py-2 text-sm font-medium`}>
       {totalPages}
     </button>
   );
@@ -130,20 +128,20 @@ export default function Pagination({ totalPages, pageSize, page, changePage }: P
   };
 
   return (
-    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-      <div className="flex-1 flex justify-between sm:hidden">
+    <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+      <div className="flex flex-1 justify-between sm:hidden">
         <button
           onClick={decrementPage}
-          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
           Anterior
         </button>
         <button
           onClick={incrementPage}
-          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
           Proximo
         </button>
       </div>
-      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-gray-900">
             Mostrando <span className="font-medium">{page}</span> to{' '}
@@ -153,14 +151,14 @@ export default function Pagination({ totalPages, pageSize, page, changePage }: P
         </div>
         <div>
           <nav
-            className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+            className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm"
             aria-label="Pagination">
             <button
               disabled={page === 1}
               onClick={decrementPage}
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+              className="relative inline-flex items-center rounded-l-md border border-gray-300 bg-white p-2 text-sm font-medium text-gray-500 hover:bg-gray-50">
               <span className="sr-only">Previous</span>
-              <GoChevronLeft className="h-5 w-5" aria-hidden="true" />
+              <GoChevronLeft className="size-5" aria-hidden="true" />
             </button>
             <PaginatedNumbers
               totalPages={totalPages}
@@ -172,9 +170,9 @@ export default function Pagination({ totalPages, pageSize, page, changePage }: P
             <button
               disabled={page === totalPages - 1}
               onClick={incrementPage}
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+              className="relative inline-flex items-center rounded-r-md border border-gray-300 bg-white p-2 text-sm font-medium text-gray-500 hover:bg-gray-50">
               <span className="sr-only">Next</span>
-              <GoChevronRight className="h-5 w-5" aria-hidden="true" />
+              <GoChevronRight className="size-5" aria-hidden="true" />
             </button>
           </nav>
         </div>

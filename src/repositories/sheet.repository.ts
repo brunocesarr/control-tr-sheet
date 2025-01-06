@@ -1,5 +1,6 @@
+import type { SheetRowData } from '@/interfaces/tr-sheet';
+
 import { apiManagerSheet } from './base/apiControlSheet';
-import { SheetRowData } from '@/interfaces/tr-sheet';
 
 async function readManagerSheet() {
   try {
@@ -53,4 +54,4 @@ async function updateAllTRStatus(newValue: boolean) {
   }
 }
 
-export { readManagerSheet, updateTRStatus, updateAllTRStatus };
+export { readManagerSheet, updateAllTRStatus, updateTRStatus };

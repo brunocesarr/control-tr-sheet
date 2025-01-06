@@ -1,4 +1,6 @@
-import { GoogleSpreadsheet, GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
+import type { GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
+import { GoogleSpreadsheet } from 'google-spreadsheet';
+
 import { spreadSheetAccountAuth } from './base/apiGoogleSheet';
 
 const getSheet = async () => {
@@ -75,4 +77,4 @@ const updateAllStatus = async (range: string[], newValue: boolean) => {
   }
 };
 
-export { getSheet, updateStatus, updateAllStatus };
+export { getSheet, updateAllStatus, updateStatus };

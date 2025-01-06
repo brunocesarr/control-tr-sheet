@@ -1,16 +1,16 @@
 'use client';
 
+import { redirect } from 'next/navigation';
+import { useContext, useState } from 'react';
+import { GoAlertFill } from 'react-icons/go';
+import { PiSignOut } from 'react-icons/pi';
+import { Bounce, ToastContainer, toast } from 'react-toastify';
+
+import { AlertModal, ConfirmModal, InputModal } from '@/components/CustomModals';
+import Loader from '@/components/Loader';
 import Navbar from '@/components/Navbar';
 import { AuthContext } from '@/contexts/useAuthContext';
-
-import { useContext, useState } from 'react';
-import { PiSignOut } from 'react-icons/pi';
-import { GoAlertFill } from 'react-icons/go';
-import { redirect } from 'next/navigation';
-import { AlertModal, ConfirmModal, InputModal } from '@/components/CustomModals';
 import { validateEmail, validateName, validatePassword } from '@/helpers/validators';
-import { Bounce, toast, ToastContainer } from 'react-toastify';
-import Loader from '@/components/Loader';
 
 export default function Profile() {
   const { loggedInUser, logout, updateName, updateEmail, updatePassword, isLoading } =
@@ -106,12 +106,12 @@ export default function Profile() {
       </Navbar>
       {isLoading && <Loader />}
       {!isLoading && (
-        <div className="px-4 h-full w-full">
+        <div className="size-full px-4">
           <div className="flex flex-row items-center justify-between px-2">
             <h1 className="border-b py-6 text-4xl font-semibold">Bem vindo, {loggedInUser.name}</h1>
             <button
               type="button"
-              className="flex items-center justify-center gap-2 w-fit min-h-[48px] p-4 cursor-pointer rounded-md transition center text-white bg-red-900 hover:bg-red-800 hover:scale-105"
+              className="center flex min-h-[48px] w-fit cursor-pointer items-center justify-center gap-2 rounded-md bg-red-900 p-4 text-white transition hover:scale-105 hover:bg-red-800"
               onClick={() => setOpenConfirmModal(true)}>
               <PiSignOut /> Sair
             </button>
@@ -129,16 +129,16 @@ export default function Profile() {
                   Alterar
                 </button>
               </div>
-              <hr className="mt-4 mb-8" />
+              <hr className="mb-8 mt-4" />
               <p className="py-2 text-xl font-semibold">Nome</p>
               <div className="flex items-center">
-                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-3 sm:space-y-0">
                   <label>
                     <span className="text-sm text-gray-500">Insira o novo nome</span>
                     <div className="relative flex overflow-hidden rounded-md border-2 transition focus-within:border-blue-600">
                       <input
                         type="text"
-                        className="w-full flex-shrink appearance-none border-gray-300 bg-white py-2 px-4 text-base text-gray-700 placeholder-gray-400 focus:outline-none"
+                        className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
                         placeholder={loggedInUser.name}
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
@@ -153,16 +153,16 @@ export default function Profile() {
                 className="mt-4 rounded-lg bg-gray-600 px-4 py-2 text-white">
                 Salvar novo nome
               </button>
-              <hr className="mt-4 mb-8" />
+              <hr className="mb-8 mt-4" />
               <p className="py-2 text-xl font-semibold">Senha</p>
               <div className="flex items-center">
-                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-3 sm:space-y-0">
                   <label>
                     <span className="text-sm text-gray-500">Insira a senha antiga</span>
                     <div className="relative flex overflow-hidden rounded-md border-2 transition focus-within:border-blue-600">
                       <input
                         type="password"
-                        className="w-full flex-shrink appearance-none border-gray-300 bg-white py-2 px-4 text-base text-gray-700 placeholder-gray-400 focus:outline-none"
+                        className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
                         placeholder="********"
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
@@ -174,7 +174,7 @@ export default function Profile() {
                     <div className="relative flex overflow-hidden rounded-md border-2 transition focus-within:border-blue-600">
                       <input
                         type="password"
-                        className="w-full flex-shrink appearance-none border-gray-300 bg-white py-2 px-4 text-base text-gray-700 placeholder-gray-400 focus:outline-none"
+                        className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
                         placeholder="********"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -189,12 +189,12 @@ export default function Profile() {
                 className="mt-4 rounded-lg bg-gray-600 px-4 py-2 text-white">
                 Salvar nova senha
               </button>
-              <hr className="mt-4 mb-8" />
+              <hr className="mb-8 mt-4" />
 
               <div className="mb-10 hidden">
                 <p className="py-2 text-xl font-semibold">Apagar conta</p>
                 <p className="inline-flex items-center rounded-full bg-rose-100 px-4 py-1 text-rose-600">
-                  <GoAlertFill className="text-rose-600 mr-2" />
+                  <GoAlertFill className="mr-2 text-rose-600" />
                   Prossiga com cuidado
                 </p>
                 <p className="mt-2">
@@ -214,13 +214,13 @@ export default function Profile() {
       <InputModal
         open={openInputModal}
         setOpen={setOpenInputModal}
-        modalDescription={'Insira o novo email'}
+        modalDescription="Insira o novo email"
         confirmValue={handleNewEmail}
       />
       <ConfirmModal
         open={openConfirmModal}
         setOpen={setOpenConfirmModal}
-        modalDescription={'Deseja realmente sair?'}
+        modalDescription="Deseja realmente sair?"
         confirmAction={handleLogout}
       />
       <ToastContainer

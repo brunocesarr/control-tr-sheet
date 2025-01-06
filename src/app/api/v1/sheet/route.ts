@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server';
-import { SheetRowData } from '@/interfaces/tr-sheet';
+
+import type { SheetRowData } from '@/interfaces/tr-sheet';
 import { getSheet, updateStatus } from '@/repositories/google.repository';
 
 export async function GET() {
