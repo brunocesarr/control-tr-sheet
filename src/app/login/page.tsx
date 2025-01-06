@@ -1,48 +1,44 @@
 'use client';
 
 import loginImg from '@/assets/log-in.svg';
-import emailImg from '@/assets/mail.svg';
-import emailActive from '@/assets/mail-focus.svg';
-import lock from '@/assets/lock.svg';
-import lockActive from '@/assets/lock-focus.svg';
 import eye from '@/assets/eye.svg';
 
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import Image from 'next/image';
 import { useContext, useState } from 'react';
 import { AuthContext } from '@/contexts/useAuthContext';
 import { redirect, RedirectType } from 'next/navigation';
+import { AlertModal } from '@/components/CustomModals';
+import { MdAlternateEmail } from 'react-icons/md';
+import { TbLockPassword } from 'react-icons/tb';
+import { validateEmail } from '@/helpers/validators';
 
 const LoginPage = () => {
-  const { login, logout, loggedInUser } = useContext(AuthContext);
+  const { login, isLoading, loggedInUser } = useContext(AuthContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordShow, setPasswordShow] = useState(false);
+  const [openAlertModal, setOpenAlertModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async () => {
     try {
-      if (!email || !password) {
-        alert('Preencha todos os campos');
+      if (!email || !password || !validateEmail(email)) {
+        setErrorMessage('Preencha todos os campos corretamente.');
+        setOpenAlertModal(true);
         return;
       }
       await login(email, password);
     } catch (error) {
       console.error('Login:' + error);
-      alert('Erro ao realizar o login.');
+      setErrorMessage('Erro ao realizar o login.');
+      setOpenAlertModal(true);
     }
   };
 
   const handleRegister = () => {
     redirect('/register', RedirectType.replace);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao realizar o logout.');
-    }
   };
 
   const handlePasswordShow = () => {
@@ -67,10 +63,8 @@ const LoginPage = () => {
               <div className="flex flex-col">
                 <label className="mb-2 font-bold text-base">E-mail</label>
                 <div className={`flex flex-col relative justify-center`}>
-                  <Image
-                    className="absolute left-2"
-                    src={email ? emailActive : emailImg}
-                    alt="Imagem do e-mail"
+                  <MdAlternateEmail
+                    className={`text-xl absolute left-2 ${email ? 'text-yellow-600' : 'text-gray-400'}`}
                   />
                   <input
                     className="w-full rounded text-black border-2 border-white p-2 pl-8 outline-none bg-form hover:border-prim focus:border-amber-400"
@@ -78,6 +72,7 @@ const LoginPage = () => {
                     placeholder="Digite seu email"
                     onChange={(e) => setEmail(e.target.value)}
                     value={email}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -85,10 +80,8 @@ const LoginPage = () => {
               <div className="flex flex-col">
                 <label className="mb-2 font-bold text-base">Senha</label>
                 <div className={'flex flex-col relative justify-center'}>
-                  <Image
-                    className="absolute left-2 mb-1"
-                    src={password ? lockActive : lock}
-                    alt="Imagem do cadeado"
+                  <TbLockPassword
+                    className={`text-xl absolute left-2 ${password ? 'text-yellow-600' : 'text-gray-400'}`}
                   />
                   <input
                     className="w-full rounded border-2 border-white p-2 pl-8 outline-none hover:border-prim focus:border-amber-400 text-black"
@@ -96,6 +89,7 @@ const LoginPage = () => {
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                   <Image
                     className="absolute right-3 cursor-pointer"
@@ -106,12 +100,16 @@ const LoginPage = () => {
                   />
                 </div>
               </div>
-
               <button
                 type="button"
-                className="flex items-center justify-center w-full min-h-[48px] cursor-pointer rounded-md transition center bg-cyan-900 hover:bg-cyan-800 hover:scale-105 mt-4 font-bold"
+                className="flex items-center justify-center w-full min-h-[48px] cursor-pointer rounded-md transition center bg-cyan-900 hover:bg-cyan-800 mt-4 font-bold"
+                disabled={isLoading}
                 onClick={handleLogin}>
-                Entrar
+                {isLoading ? (
+                  <AiOutlineLoading3Quarters className="text-white animate-spin" />
+                ) : (
+                  'Entrar'
+                )}
               </button>
             </form>
           </div>
@@ -130,6 +128,7 @@ const LoginPage = () => {
           alt="Imagem de Carro"
         />
       </div>
+      <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
     </div>
   );
 };

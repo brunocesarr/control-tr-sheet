@@ -1,34 +1,45 @@
 'use client';
 
 import loginImg from '@/assets/log-in.svg';
-import emailImg from '@/assets/mail.svg';
-import emailActive from '@/assets/mail-focus.svg';
-import lock from '@/assets/lock.svg';
-import lockActive from '@/assets/lock-focus.svg';
 import eye from '@/assets/eye.svg';
 
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
+import { CiUser } from 'react-icons/ci';
+import { MdAlternateEmail } from 'react-icons/md';
+import { TbLockPassword } from 'react-icons/tb';
 import Image from 'next/image';
 import { useContext, useState } from 'react';
 import { AuthContext } from '@/contexts/useAuthContext';
 import { redirect } from 'next/navigation';
+import { AlertModal } from '@/components/CustomModals';
+import { validateEmail, validateName, validatePassword } from '@/helpers/validators';
 
 const RegisterPage = () => {
-  const { register } = useContext(AuthContext);
+  const { register, isLoading } = useContext(AuthContext);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordShow, setPasswordShow] = useState(false);
+  const [openAlertModal, setOpenAlertModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const isValidName = name ? validateName(name) : true;
+  const isValidCurrentEmail = email ? validateEmail(email) : true;
+  const isValidCurrentPassword = password ? validatePassword(password) : true;
 
   const handleRegister = async () => {
     try {
       if (!email || !password) {
-        alert('Preencha todos os campos');
+        setErrorMessage('Preencha todos os campos');
+        setOpenAlertModal(true);
         return;
       }
       await register(email, password, name);
     } catch (error) {
-      alert('Erro ao realizar o login.');
+      console.error(error);
+      setErrorMessage('Erro ao realizar o cadastro.');
+      setOpenAlertModal(true);
     }
   };
 
@@ -56,53 +67,60 @@ const RegisterPage = () => {
               <div className="flex flex-col">
                 <label className="mb-2 font-bold text-base">Nome</label>
                 <div className={`flex flex-col relative justify-center`}>
-                  <Image
-                    className="absolute left-2"
-                    src={email ? emailActive : emailImg}
-                    alt="Imagem do e-mail"
+                  <CiUser
+                    className={`text-xl absolute left-2 ${name ? (isValidName ? 'text-amber-400' : 'text-red-600') : 'text-gray-400'}`}
                   />
                   <input
-                    className="w-full rounded text-black border-2 border-white p-2 pl-8 outline-none bg-form hover:border-prim focus:border-amber-400"
+                    className={`w-full rounded text-black border-2 p-2 pl-8 outline-none bg-form hover:border-prim focus:border-amber-400 ${!isValidName ? 'border-red-600' : 'border-white'}`}
                     type="text"
                     placeholder="Digite seu nome"
                     onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
                     value={name}
                   />
                 </div>
+                {!isValidName && (
+                  <label className="mt-0.5 font-light text-xs text-red-600">
+                    Insira um nome válido
+                  </label>
+                )}
               </div>
 
               <div className="flex flex-col">
                 <label className="mb-2 font-bold text-base">E-mail</label>
                 <div className={`flex flex-col relative justify-center`}>
-                  <Image
-                    className="absolute left-2"
-                    src={email ? emailActive : emailImg}
-                    alt="Imagem do e-mail"
+                  <MdAlternateEmail
+                    className={`text-xl absolute left-2 ${email ? (isValidCurrentEmail ? 'text-amber-400' : 'text-red-600') : 'text-gray-400'}`}
                   />
                   <input
-                    className="w-full rounded text-black border-2 border-white p-2 pl-8 outline-none bg-form hover:border-prim focus:border-amber-400"
+                    className={`w-full rounded text-black border-2 p-2 pl-8 outline-none bg-form hover:border-prim focus:border-amber-400 ${!isValidCurrentEmail ? 'border-red-600' : 'border-white'}`}
                     type="email"
                     placeholder="Digite seu email"
                     onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
                     value={email}
                   />
                 </div>
+                {!isValidCurrentEmail && (
+                  <label className="mt-0.5 font-light text-xs text-red-600">
+                    Insira um e-mail válido
+                  </label>
+                )}
               </div>
 
               <div className="flex flex-col">
                 <label className="mb-2 font-bold text-base">Senha</label>
                 <div className={'flex flex-col relative justify-center'}>
-                  <Image
-                    className="absolute left-2 mb-1"
-                    src={password ? lockActive : lock}
-                    alt="Imagem do cadeado"
+                  <TbLockPassword
+                    className={`text-xl absolute left-2 ${password ? (isValidCurrentPassword ? 'text-amber-600' : 'text-red-600') : 'text-gray-400'}`}
                   />
                   <input
-                    className="w-full rounded border-2 border-white p-2 pl-8 outline-none hover:border-prim focus:border-amber-400 text-black"
+                    className={`w-full rounded border-2 p-2 pl-8 outline-none hover:border-prim focus:border-amber-400 text-black ${!isValidCurrentPassword ? 'border-red-600' : 'border-white'}`}
                     type={passwordShow ? 'text' : 'password'}
                     placeholder="Digite sua senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                   />
                   <Image
                     className="absolute right-3 cursor-pointer"
@@ -112,13 +130,23 @@ const RegisterPage = () => {
                     alt="Botão de aparecer mensagem"
                   />
                 </div>
+                {!isValidCurrentPassword && (
+                  <label className="mt-0.5 font-light text-xs text-red-600">
+                    Insira uma senha válida
+                  </label>
+                )}
               </div>
 
               <button
                 type="button"
-                className="flex items-center justify-center w-full min-h-[48px] cursor-pointer rounded-md transition center bg-cyan-900 hover:bg-cyan-800 hover:scale-105 mt-4 font-bold"
+                className="flex items-center justify-center w-full min-h-[48px] cursor-pointer rounded-md transition center bg-cyan-900 hover:bg-cyan-800 mt-4 font-bold"
+                disabled={isLoading}
                 onClick={handleRegister}>
-                Cadastre-se
+                {isLoading ? (
+                  <AiOutlineLoading3Quarters className="text-white animate-spin" />
+                ) : (
+                  'Cadastre-se'
+                )}
               </button>
             </form>
           </div>
@@ -137,6 +165,7 @@ const RegisterPage = () => {
           alt="Imagem de Carro"
         />
       </div>
+      <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
     </div>
   );
 };

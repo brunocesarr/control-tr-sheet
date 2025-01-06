@@ -8,12 +8,14 @@ import { PiSignOut } from 'react-icons/pi';
 import { MdDashboard } from 'react-icons/md';
 import { GiHamburgerMenu } from 'react-icons/gi';
 import { AuthContext } from '@/contexts/useAuthContext';
+import { ConfirmModal } from './CustomModals';
 
 const Sidebar = () => {
   const { logout, loggedInUser } = useContext(AuthContext);
 
   const [open, setOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const pathname = usePathname();
 
   const Menus = [
@@ -72,7 +74,7 @@ const Sidebar = () => {
             </ul>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setOpenConfirmModal(true)}
             className="flex items-center w-full gap-x-6 p-3 text-base font-normal rounded-lg cursor-pointer text-white hover:bg-gray-700">
             <span className="text-2xl">
               <PiSignOut />
@@ -109,12 +111,18 @@ const Sidebar = () => {
             </Link>
           ))}
           <button
-            onClick={handleLogout}
+            onClick={() => setOpenConfirmModal(true)}
             className="flex items-center justify-center w-full text-base font-bold rounded-lg cursor-pointer text-white">
             <span className={'rounded-xl hover:bg-gray-200'}>Sair</span>
           </button>
         </div>
       </div>
+      <ConfirmModal
+        open={openConfirmModal}
+        setOpen={setOpenConfirmModal}
+        modalDescription={'Deseja realmente sair?'}
+        confirmAction={handleLogout}
+      />
     </>
   );
 };

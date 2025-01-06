@@ -127,7 +127,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const providerValue = {
     loggedInUser,
@@ -139,8 +139,6 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updatePassword,
     isLoading: isLoading,
   };
-
-  if (isLoading) return <Loader />;
 
   return <AuthContext.Provider value={providerValue}>{children}</AuthContext.Provider>;
 };

@@ -7,6 +7,8 @@ import { useContext, useState } from 'react';
 import { PiSignOut } from 'react-icons/pi';
 import { GoAlertFill } from 'react-icons/go';
 import { redirect } from 'next/navigation';
+import { AlertModal, ConfirmModal, InputModal } from '@/components/CustomModals';
+import { validateEmail, validateName, validatePassword } from '@/helpers/validators';
 
 export default function Profile() {
   const { loggedInUser, logout, updateName, updateEmail, updatePassword } = useContext(AuthContext);
@@ -14,43 +16,68 @@ export default function Profile() {
   const [newName, setNewName] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [openAlertModal, setOpenAlertModal] = useState(false);
+  const [openInputModal, setOpenInputModal] = useState(false);
+  const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch (error) {
       console.error(error);
-      alert('Erro ao realizar o logout.');
+      setErrorMessage('Erro ao realizar o logout.');
+      setOpenAlertModal(true);
     }
   };
 
   const handleNewNome = async () => {
     try {
+      if (!validateName(newName)) {
+        setErrorMessage('Insira um nome válido.');
+        setOpenAlertModal(true);
+        return;
+      }
+
       await updateName(newName);
     } catch (error) {
       console.error(error);
-      alert('Erro ao realizar a alteracao do nome.');
+      setErrorMessage('Erro ao realizar a alteracao do nome.');
+      setOpenAlertModal(true);
     }
   };
 
-  const handleNewEmail = async () => {
+  const handleNewEmail = async (newEmail: string) => {
     try {
-      await updateEmail(newName);
+      if (!validateEmail(newEmail)) {
+        setErrorMessage('Insira um endereco de e-mail válido.');
+        setOpenAlertModal(true);
+        return;
+      }
+
+      await updateEmail(newEmail);
     } catch (error) {
       console.error(error);
-      alert('Erro ao realizar a alteracao do email.');
+      setErrorMessage('Erro ao realizar a alteracao do email.');
+      setOpenAlertModal(true);
     }
   };
 
   const handleNewPassword = async () => {
     try {
+      if (!validatePassword(newPassword)) {
+        setErrorMessage('Insira uma senha válido.');
+        setOpenAlertModal(true);
+        return;
+      }
+
       await updatePassword(oldPassword, newPassword);
     } catch (error) {
       console.error(error);
-      alert('Erro ao realizar a alteracao da senha.');
+      setErrorMessage('Erro ao realizar a alteracao da senha.');
+      setOpenAlertModal(true);
     }
   };
-
 
   if (!loggedInUser) {
     return redirect('/login');
@@ -67,19 +94,19 @@ export default function Profile() {
           <button
             type="button"
             className="flex items-center justify-center gap-2 w-fit min-h-[48px] p-4 cursor-pointer rounded-md transition center text-white bg-red-900 hover:bg-red-800 hover:scale-105"
-            onClick={handleLogout}>
+            onClick={() => setOpenConfirmModal(true)}>
             <PiSignOut /> Sair
           </button>
         </div>
         <div className="grid grid-cols-8 pt-3 sm:grid-cols-10">
-          <div className="col-span-8 overflow-hidden rounded-xl sm:bg-gray-50 sm:px-8 sm:shadow">
+          <div className="col-span-12 overflow-hidden rounded-xl sm:bg-gray-50 sm:px-8 sm:shadow">
             <p className="py-2 text-xl font-semibold">Endereco de Email</p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <p className="text-gray-600">
                 Seu email é <strong>{loggedInUser.email}</strong>
               </p>
               <button
-                onClick={handleNewEmail}
+                onClick={() => setOpenInputModal(true)}
                 className="inline-flex text-sm font-semibold text-blue-600 underline decoration-2">
                 Alterar
               </button>
@@ -164,6 +191,19 @@ export default function Profile() {
           </div>
         </div>
       </div>
+      <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
+      <InputModal
+        open={openInputModal}
+        setOpen={setOpenInputModal}
+        modalDescription={'Insira o novo email'}
+        confirmValue={handleNewEmail}
+      />
+      <ConfirmModal
+        open={openConfirmModal}
+        setOpen={setOpenConfirmModal}
+        modalDescription={'Deseja realmente sair?'}
+        confirmAction={handleLogout}
+      />
     </div>
   );
 }
