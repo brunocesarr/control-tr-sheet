@@ -6,7 +6,7 @@ async function readManagerSheet() {
     const { data } = await apiManagerSheet.get('/api/v1/sheet');
     if (!data || data.length === 0) throw 'Empty Sheet!';
 
-    let rowsData = data
+    const rowsData = data
       .map((row: any) => {
         return {
           cellRange: row.cellRange,

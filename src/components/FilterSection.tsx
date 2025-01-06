@@ -1,5 +1,6 @@
 import { SheetContext } from '@/contexts/useSheetContext';
 import { ChangeEvent, useContext, useState } from 'react';
+import { ConfirmModal } from './CustomModals';
 
 const FilterOptions = () => {
   const { filter, setFilter } = useContext(SheetContext);
@@ -75,8 +76,7 @@ const ResetButton = () => {
   const handleReset = () => {
     setFilter({
       keyword: '',
-      hasDone: null,
-      page: 1,
+      pageSize: 1,
     });
   };
 
@@ -91,13 +91,27 @@ const ResetButton = () => {
 
 const NoDeliveryStatusButton = () => {
   const { updateAllToNoDeliveryStatus } = useContext(SheetContext);
+  const [openConfirmModal, setOpenConfirmModal] = useState(false);
 
   return (
-    <button
-      onClick={updateAllToNoDeliveryStatus}
-      className="font-bold medium text-sm text-white bg-amber-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]">
-      Marcar todos como nao entregue
-    </button>
+    <>
+      <button
+        onClick={() => setOpenConfirmModal(true)}
+        className="font-bold medium text-sm text-white bg-amber-600 px-4 py-2 h-10 rounded-lg hover:bg-cyan-500 min-h-[48px]">
+        Marcar todos como nao entregue
+      </button>
+      <ConfirmModal
+        open={openConfirmModal}
+        setOpen={setOpenConfirmModal}
+        modalDescription={
+          <>
+            <p>Deseja realmente marcar todos como nao entregue?</p>
+            <p> Lembre-se que é uma ação irreversível.</p>
+          </>
+        }
+        confirmAction={updateAllToNoDeliveryStatus}
+      />
+    </>
   );
 };
 

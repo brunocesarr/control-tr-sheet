@@ -14,7 +14,7 @@ interface ISheetContext {
     status?: string;
     pageSize: number;
   };
-  setFilter: ({}: any) => void;
+  setFilter: ({}: { keyword?: string; status?: string; pageSize: number }) => void;
   updateStatus: (item: SheetRowData) => Promise<void>;
   updateAllToNoDeliveryStatus: () => Promise<void>;
   response: SheetRowData[];

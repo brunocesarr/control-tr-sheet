@@ -1,7 +1,7 @@
 import { LuCircleAlert } from 'react-icons/lu';
 
 import Modal from '@/components/Modal';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface AlertModalProps {
   open: boolean;
@@ -80,7 +80,7 @@ export function InputModal({ open, setOpen, modalDescription, confirmValue }: In
 interface ConfirmModalProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  modalDescription: string;
+  modalDescription: string | React.ReactNode;
   confirmAction: () => void;
 }
 
