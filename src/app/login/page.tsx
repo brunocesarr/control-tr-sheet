@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { RedirectType, redirect } from 'next/navigation';
-import { useContext, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useContext, useEffect, useState } from 'react';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { MdAlternateEmail } from 'react-icons/md';
 import { TbLockPassword } from 'react-icons/tb';
@@ -15,12 +15,17 @@ import { validateEmail } from '@/helpers/validators';
 
 const LoginPage = () => {
   const { login, isLoading, loggedInUser } = useContext(AuthContext);
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordShow, setPasswordShow] = useState(false);
   const [openAlertModal, setOpenAlertModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (loggedInUser) router.push('/home');
+  }, [loggedInUser]);
 
   const handleLogin = async () => {
     try {
@@ -38,18 +43,16 @@ const LoginPage = () => {
   };
 
   const handleRegister = () => {
-    redirect('/register', RedirectType.replace);
+    router.push('/register');
   };
 
   const handlePasswordShow = () => {
     setPasswordShow(!passwordShow);
   };
 
-  if (loggedInUser) redirect('/home');
-
   return (
-    <div className="font-poppins flex flex-row bg-gray-700 text-base text-white">
-      <div className="flex w-full flex-col md:flex md:flex-col">
+    <div className="font-poppins flex flex-row items-center md:flx-col bg-gray-700 text-base text-white min-h-screen">
+      <div className="flex w-full flex-col">
         <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-800 p-8 shadow-md shadow-slate-400 md:m-auto md:w-[600px]">
           <div className="flex flex-col gap-3 self-start py-2">
             <div className="flex flex-row gap-4">

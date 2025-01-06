@@ -132,11 +132,13 @@ export default function Pagination({ totalPages, pageSize, page, changePage }: P
       <div className="flex flex-1 justify-between sm:hidden">
         <button
           onClick={decrementPage}
+          disabled={page === 1}
           className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
           Anterior
         </button>
         <button
           onClick={incrementPage}
+          disabled={page === totalPages}
           className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
           Proximo
         </button>
@@ -168,7 +170,7 @@ export default function Pagination({ totalPages, pageSize, page, changePage }: P
               maxPageNumberLimit={maxPageNumberLimit}
             />
             <button
-              disabled={page === totalPages - 1}
+              disabled={page === totalPages}
               onClick={incrementPage}
               className="relative inline-flex items-center rounded-r-md border border-gray-300 bg-white p-2 text-sm font-medium text-gray-500 hover:bg-gray-50">
               <span className="sr-only">Next</span>

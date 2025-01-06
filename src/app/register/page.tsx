@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { CiUser } from 'react-icons/ci';
@@ -16,6 +16,7 @@ import { validateEmail, validateName, validatePassword } from '@/helpers/validat
 
 const RegisterPage = () => {
   const { register, isLoading } = useContext(AuthContext);
+  const router = useRouter();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -44,7 +45,7 @@ const RegisterPage = () => {
   };
 
   const handleLogin = () => {
-    redirect('/login');
+    router.push('/login');
   };
 
   const handlePasswordShow = () => {
@@ -52,7 +53,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="font-poppins flex flex-row bg-gray-700 text-base text-white">
+    <div className="font-poppins flex flex-row items-center bg-gray-700 text-base text-white min-h-screen">
       <div className="flex w-full flex-col md:flex md:flex-col">
         <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-800 p-8 shadow-md shadow-slate-400 md:m-auto md:w-[600px]">
           <div className="flex flex-col gap-3 self-start py-2">

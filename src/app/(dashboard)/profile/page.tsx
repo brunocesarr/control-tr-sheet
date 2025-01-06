@@ -1,6 +1,6 @@
 'use client';
 
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import { GoAlertFill } from 'react-icons/go';
 import { PiSignOut } from 'react-icons/pi';
@@ -15,6 +15,7 @@ import { validateEmail, validateName, validatePassword } from '@/helpers/validat
 export default function Profile() {
   const { loggedInUser, logout, updateName, updateEmail, updatePassword, isLoading } =
     useContext(AuthContext);
+  const router = useRouter();
 
   const [newName, setNewName] = useState('');
   const [oldPassword, setOldPassword] = useState('');
@@ -92,7 +93,7 @@ export default function Profile() {
   };
 
   if (!loggedInUser) {
-    return redirect('/login');
+    return router.push('/login');
   }
 
   if (isLoading) {
