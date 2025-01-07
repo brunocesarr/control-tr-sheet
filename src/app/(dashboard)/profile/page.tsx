@@ -1,12 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { GoAlertFill } from 'react-icons/go';
 import { PiSignOut } from 'react-icons/pi';
 import { Bounce, ToastContainer, toast } from 'react-toastify';
 
-import { AlertModal, ConfirmModal, InputModal } from '@/components/CustomModals';
+import { AlertModal, ConfirmModal, NewEmailModal } from '@/components/CustomModals';
 import Loader from '@/components/Loader';
 import Navbar from '@/components/Navbar';
 import { AuthContext } from '@/contexts/useAuthContext';
@@ -24,6 +24,12 @@ export default function Profile() {
   const [openInputModal, setOpenInputModal] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (!loggedInUser) {
+      router.push('/login');
+    }
+  }, [loggedInUser, router]);
 
   const handleLogout = async () => {
     try {
@@ -54,7 +60,7 @@ export default function Profile() {
     }
   };
 
-  const handleNewEmail = async (newEmail: string) => {
+  const handleNewEmail = async (newEmail: string, password: string) => {
     try {
       if (!validateEmail(newEmail)) {
         setErrorMessage('Insira um endereco de e-mail válido.');
@@ -62,7 +68,7 @@ export default function Profile() {
         return;
       }
 
-      await updateEmail(newEmail);
+      await updateEmail(newEmail, password);
       setTimeout(() => {
         toast.success('Alteracao realizada com sucesso.');
       }, 1000);
@@ -94,10 +100,6 @@ export default function Profile() {
     }
   };
 
-  if (!loggedInUser) {
-    return router.push('/login');
-  }
-
   if (isLoading) {
     return <Loader />;
   }
@@ -111,7 +113,9 @@ export default function Profile() {
       {!isLoading && (
         <div className="size-full px-4">
           <div className="flex flex-row items-center justify-between px-2">
-            <h1 className="border-b py-6 text-4xl font-semibold">Bem vindo, {loggedInUser.name}</h1>
+            <h1 className="border-b py-6 text-4xl font-semibold">
+              Bem vindo, {loggedInUser?.name}
+            </h1>
             <button
               type="button"
               className="center flex min-h-[48px] w-fit cursor-pointer items-center justify-center gap-2 rounded-md bg-red-900 p-4 text-white transition hover:scale-105 hover:bg-red-800"
@@ -124,7 +128,7 @@ export default function Profile() {
               <p className="py-2 text-xl font-semibold">Endereco de Email</p>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-gray-600">
-                  Seu email é <strong>{loggedInUser.email}</strong>
+                  Seu email é <strong>{loggedInUser?.email}</strong>
                 </p>
                 <button
                   onClick={() => setOpenInputModal(true)}
@@ -142,7 +146,7 @@ export default function Profile() {
                       <input
                         type="text"
                         className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                        placeholder={loggedInUser.name}
+                        placeholder={loggedInUser?.name}
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
                       />
@@ -214,10 +218,9 @@ export default function Profile() {
         </div>
       )}
       <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
-      <InputModal
+      <NewEmailModal
         open={openInputModal}
         setOpen={setOpenInputModal}
-        modalDescription="Insira o novo email"
         confirmValue={handleNewEmail}
       />
       <ConfirmModal

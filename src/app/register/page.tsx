@@ -36,7 +36,7 @@ const RegisterPage = () => {
         setOpenAlertModal(true);
         return;
       }
-      await register(email, password, name);
+      await register(name, email, password);
     } catch (error) {
       console.error(error);
       setErrorMessage('Erro ao realizar o cadastro.');
@@ -167,7 +167,7 @@ const RegisterPage = () => {
         </div>
       </div>
       <div className="hidden w-4/12 md:relative md:block">
-        <img
+        <Image
           className="md:h-screen md:w-screen md:object-cover"
           src="/img/login-img.jpg"
           alt="Imagem de Carro"

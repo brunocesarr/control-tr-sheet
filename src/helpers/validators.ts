@@ -1,3 +1,5 @@
+import { jwtDecode } from 'jwt-decode';
+
 const validateEmail = (email: string) => {
   return String(email)
     .toLowerCase()
@@ -16,4 +18,17 @@ const validateName = (name: string) => {
   return String(name).match(/^[a-zA-Z ]{2,30}$/);
 };
 
-export { validateEmail, validateName, validatePassword };
+const isTokenExpired = (token?: string) => {
+  if (!token) return true;
+  try {
+    const decodedToken = jwtDecode(token);
+    if (!decodedToken.exp) return true;
+    const currentTime = Date.now() / 1000;
+    return decodedToken.exp < currentTime;
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return true;
+  }
+};
+
+export { validateEmail, validateName, validatePassword, isTokenExpired };

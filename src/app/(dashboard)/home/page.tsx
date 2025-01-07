@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 
 import { FilterSection } from '@/components/FilterSection';
 import Navbar from '@/components/Navbar';
@@ -16,7 +16,9 @@ export default function Home() {
   const { loggedInUser } = useContext(AuthContext);
   const router = useRouter();
 
-  if (loggedInUser && !loggedInUser.labels.includes('admin')) return router.push('/profile');
+  useEffect(() => {
+    if (loggedInUser && !loggedInUser.labels.includes('admin')) return router.push('/profile');
+  }, [loggedInUser, router]);
 
   return (
     <QueryClientProvider client={queryClient}>

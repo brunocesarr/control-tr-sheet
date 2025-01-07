@@ -2,11 +2,12 @@
 
 import type { Models } from 'appwrite';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useEffect, useState } from 'react';
 
 import { ID, account } from '@/configs/appwrite';
 import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+import { isTokenExpired } from '@/helpers/validators';
 
 interface IAuthContext {
   loggedInUser: Models.User<Models.Preferences> | null;
@@ -14,7 +15,7 @@ interface IAuthContext {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateName: (newName: string) => Promise<void>;
-  updateEmail: (newEmail: string) => Promise<void>;
+  updateEmail: (newEmail: string, password: string) => Promise<void>;
   updatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   isLoading: boolean;
 }
@@ -23,6 +24,7 @@ export const AuthContext = createContext({} as IAuthContext);
 
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loggedInUser, setLoggedInUser] = useState<Models.User<Models.Preferences> | null>(null);
 
@@ -31,7 +33,9 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setIsLoading(true);
         const userInfo = await account.get();
+        const { jwt } = await account.createJWT();
         setLoggedInUser(userInfo);
+        Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
       } catch {
         setLoggedInUser(null);
       } finally {
@@ -42,6 +46,27 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkLoggedInUser();
   }, []);
 
+  useEffect(() => {
+    const updateToken = async () => {
+      if (loggedInUser) {
+        const token = Cookies.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
+        if (token) {
+          if (isTokenExpired(token)) {
+            const { jwt } = await account.createJWT();
+            Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
+          }
+        } else {
+          const { jwt } = await account.createJWT();
+          Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
+        }
+      } else {
+        router.push('/login');
+      }
+    };
+
+    updateToken();
+  }, [pathname, loggedInUser, router]);
+
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -49,13 +74,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('Invalid parameters');
       }
 
-      const session = await account.createEmailPasswordSession(email, password);
+      await account.createEmailPasswordSession(email, password);
       const userInfo = await account.get();
+      const { jwt } = await account.createJWT();
       setLoggedInUser(userInfo);
 
-      Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, session.$id, {
-        expires: 1,
-      });
+      Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
       router.push('/home');
     } catch (error) {
       throw error;
@@ -79,7 +103,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      await account.deleteSession('current');
+      await account.deleteSessions();
       setLoggedInUser(null);
       Cookies.remove(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
       router.push('/login');
@@ -103,10 +127,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updateEmail = async (newEmail: string) => {
+  const updateEmail = async (newEmail: string, password: string) => {
     try {
       setIsLoading(true);
-      await account.updateEmail(newEmail, '123456789');
+      await account.updateEmail(newEmail, password);
       const userInfo = await account.get();
       setLoggedInUser(userInfo);
     } catch (error) {

@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 import { LocalStorageKeysCache } from './configs/local-storage-keys';
+import { isTokenExpired } from '@/helpers/validators';
 
 export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname == '/') {
@@ -19,7 +20,7 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute) {
     const cookie = await cookies();
     const token = cookie.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
-    if (!token) return NextResponse.redirect(new URL('/login', request.url));
+    if (isTokenExpired(token?.value)) return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
