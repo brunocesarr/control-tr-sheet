@@ -25,7 +25,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (loggedInUser) router.push('/home');
-  }, [loggedInUser]);
+  }, [loggedInUser, router]);
 
   const handleLogin = async () => {
     try {
@@ -125,7 +125,7 @@ const LoginPage = () => {
         </div>
       </div>
       <div className="hidden w-4/12 md:relative md:block">
-        <img
+        <Image
           className="md:h-screen md:w-screen md:object-cover"
           src="/img/login-img.jpg"
           alt="Imagem de Carro"

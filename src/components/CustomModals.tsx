@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LuCircleAlert } from 'react-icons/lu';
 
 import Modal from '@/components/Modal';
+import { validateEmail } from '@/helpers/validators';
 
 interface AlertModalProps {
   open: boolean;
@@ -30,39 +31,56 @@ export function AlertModal({ open, setOpen, errorMessage }: AlertModalProps) {
   );
 }
 
-interface InputModalProps {
+interface NewEmailModalProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  modalDescription: string;
-  confirmValue: (value: string) => void;
+  confirmValue: (newEmail: string, password: string) => void;
 }
 
-export function InputModal({ open, setOpen, modalDescription, confirmValue }: InputModalProps) {
-  const [value, setValue] = useState('');
+export function NewEmailModal({ open, setOpen, confirmValue }: NewEmailModalProps) {
+  const [newEmail, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const isValidInputs = validateEmail(newEmail) && password;
+
+  const handleNewEmail = () => {
+    confirmValue(newEmail, password);
+    setOpen(false);
+  };
 
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
       <div className="w-fit text-center">
         <div className="it mt-4 flex w-full flex-col gap-2 space-y-2">
           <label className="flex w-full flex-col gap-2">
-            <span className="text-base text-gray-500">{modalDescription}</span>
+            <span className="text-base text-gray-500">Novo e-mail</span>
             <div className="relative flex overflow-hidden rounded-md border-2 transition focus-within:border-blue-600">
               <input
                 type="text"
                 className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                placeholder="Digite aqui..."
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
+                placeholder="Insira o novo email"
+                value={newEmail}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </label>
+          <label className="flex w-full flex-col gap-2">
+            <span className="text-base text-gray-500">Senha atual</span>
+            <div className="relative flex overflow-hidden rounded-md border-2 transition focus-within:border-blue-600">
+              <input
+                type="password"
+                className="w-full shrink appearance-none border-gray-300 bg-white px-4 py-2 text-base text-gray-700 placeholder:text-gray-400 focus:outline-none"
+                placeholder="Insira a senha atual"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </label>
           <div className="flex w-full flex-col items-center justify-center gap-1">
             <button
-              onClick={() => {
-                confirmValue(value);
-                setOpen(false);
-              }}
-              className="btn w-full rounded-md bg-gray-900 px-4 py-2 font-bold text-white hover:bg-gray-600">
+              onClick={handleNewEmail}
+              disabled={!isValidInputs}
+              className={`btn w-full rounded-md bg-gray-900 px-4 py-2 font-bold text-white ${isValidInputs ? 'hover:bg-gray-600' : 'opacity-40'}`}>
               Confirmar
             </button>
             <button

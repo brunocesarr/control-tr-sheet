@@ -73,41 +73,37 @@ const SheetProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { keyword, status } = filter;
     if (keyword || status) {
-      filterValues();
+      setIsLoading(true);
+      let filteredSearch = data?.map((v) => v) ?? [];
+
+      const { keyword, status } = filter;
+
+      if (keyword && keyword.length > 2) {
+        filteredSearch = filteredSearch.filter((value) => {
+          const foundedByName = value.name.toLowerCase().includes(keyword.toLowerCase());
+          const foundedByCPF = value.cpf.replace(/\D/g, '').startsWith(keyword);
+          const foundedByCIB = value.cib
+            ?.replace(/[^a-zA-Z0-9]/g, '')
+            .toLocaleLowerCase()
+            .startsWith(keyword.toLocaleLowerCase());
+          const foundedByRuralProperty = value.imovelRural
+            ?.toLowerCase()
+            .includes(keyword.toLowerCase());
+
+          return foundedByName || foundedByCPF || foundedByCIB || foundedByRuralProperty;
+        });
+      }
+      if (status !== undefined && status !== null) {
+        if (status === 'entregue') filteredSearch = filteredSearch.filter((value) => value.hasDone);
+        if (status === 'nao entregue')
+          filteredSearch = filteredSearch.filter((value) => !value.hasDone);
+      }
+      setFilteredValues(filteredSearch);
+      setIsLoading(false);
     } else {
       setFilteredValues(data);
     }
   }, [data, filter]);
-
-  const filterValues = () => {
-    setIsLoading(true);
-    let filteredSearch = data?.map((v) => v) ?? [];
-
-    const { keyword, status } = filter;
-
-    if (keyword && keyword.length > 2) {
-      filteredSearch = filteredSearch.filter((value) => {
-        const foundedByName = value.name.toLowerCase().includes(keyword.toLowerCase());
-        const foundedByCPF = value.cpf.replace(/\D/g, '').startsWith(keyword);
-        const foundedByCIB = value.cib
-          ?.replace(/[^a-zA-Z0-9]/g, '')
-          .toLocaleLowerCase()
-          .startsWith(keyword.toLocaleLowerCase());
-        const foundedByRuralProperty = value.imovelRural
-          ?.toLowerCase()
-          .includes(keyword.toLowerCase());
-
-        return foundedByName || foundedByCPF || foundedByCIB || foundedByRuralProperty;
-      });
-    }
-    if (status !== undefined && status !== null) {
-      if (status === 'entregue') filteredSearch = filteredSearch.filter((value) => value.hasDone);
-      if (status === 'nao entregue')
-        filteredSearch = filteredSearch.filter((value) => !value.hasDone);
-    }
-    setFilteredValues(filteredSearch);
-    setIsLoading(false);
-  };
 
   const updateStatus = async (item: SheetRowData) => {
     try {
