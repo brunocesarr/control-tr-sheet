@@ -36,7 +36,7 @@ const isAdminToken = (token?: string) => {
   try {
     const decodedToken: any = jwtDecode(token);
     if (!decodedToken.isAdmin) return false;
-    return decodedToken.isAdmin.toLowerCase() === 'true';
+    return decodedToken.isAdmin;
   } catch (error) {
     console.error('Error decoding token:', error);
     return true;

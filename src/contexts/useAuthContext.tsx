@@ -50,6 +50,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const updateToken = async () => {
+      setIsLoading(true);
       if (loggedInUser) {
         const token = Cookies.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
         if (token) {
@@ -66,6 +67,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         Cookies.remove(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
       }
+      setIsLoading(false);
     };
 
     updateToken();
