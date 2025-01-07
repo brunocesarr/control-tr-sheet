@@ -2,9 +2,26 @@ import { type NextRequest } from 'next/server';
 
 import type { SheetRowData } from '@/interfaces/tr-sheet';
 import { getSheet, updateStatus } from '@/repositories/google.repository';
+import { isAdminToken } from '@/helpers/validators';
+import { cookies } from 'next/headers';
+import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+
+const isAdmin = async () => {
+  const cookie = await cookies();
+  const token = cookie.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
+  return isAdminToken(token?.value);
+};
 
 export async function GET() {
   try {
+    if (!(await isAdmin()))
+      return new Response(
+        JSON.stringify({
+          message: 'Unauthorized',
+        }),
+        { status: 401 }
+      );
+
     const data = await getSheet();
 
     if (data == null || Object.values(data).length <= 0)
@@ -42,6 +59,14 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
+    if (!(await isAdmin()))
+      return new Response(
+        JSON.stringify({
+          message: 'Unauthorized',
+        }),
+        { status: 401 }
+      );
+
     const formData = await request.formData();
     const range = formData.get('range');
     const hasDone = formData.get('has_done');

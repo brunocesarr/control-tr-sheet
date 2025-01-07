@@ -100,7 +100,7 @@ export default function Profile() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !loggedInUser) {
     return <Loader />;
   }
 
