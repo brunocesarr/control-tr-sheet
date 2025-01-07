@@ -1,7 +1,7 @@
 import { Models } from 'appwrite';
 import jwt from 'jwt-simple';
 
-const secret = process.env.JWT_SECRET ?? '';
+const secret = process.env.NEXT_PUBLIC_JWT_SECRET ?? '';
 
 const generateJWT = (userInfo: Models.User<Models.Preferences>, sessionId: string) => {
   return jwt.encode(
