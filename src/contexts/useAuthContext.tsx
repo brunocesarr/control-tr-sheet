@@ -60,7 +60,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
         }
       } else {
-        router.push('/login');
+        Cookies.remove(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
       }
     };
 
