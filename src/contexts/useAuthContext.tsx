@@ -8,6 +8,7 @@ import { createContext, useEffect, useState } from 'react';
 import { ID, account } from '@/configs/appwrite';
 import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
 import { isTokenExpired } from '@/helpers/validators';
+import { generateJWT } from '@/helpers/utils';
 
 interface IAuthContext {
   loggedInUser: Models.User<Models.Preferences> | null;
@@ -33,10 +34,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setIsLoading(true);
         const userInfo = await account.get();
-        const { jwt } = await account.createJWT();
+        const session = await account.getSession('current');
+        const jwt = generateJWT(userInfo, session.$id);
         setLoggedInUser(userInfo);
         Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
-      } catch {
+      } catch (error) {
         setLoggedInUser(null);
       } finally {
         setIsLoading(false);
@@ -52,11 +54,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const token = Cookies.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
         if (token) {
           if (isTokenExpired(token)) {
-            const { jwt } = await account.createJWT();
+            const session = await account.getSession('current');
+            const jwt = generateJWT(loggedInUser, session.$id);
             Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
           }
         } else {
-          const { jwt } = await account.createJWT();
+          const session = await account.getSession('current');
+          const jwt = generateJWT(loggedInUser, session.$id);
           Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
         }
       } else {
@@ -74,9 +78,9 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('Invalid parameters');
       }
 
-      await account.createEmailPasswordSession(email, password);
+      const session = await account.createEmailPasswordSession(email, password);
       const userInfo = await account.get();
-      const { jwt } = await account.createJWT();
+      const jwt = generateJWT(userInfo, session.$id);
       setLoggedInUser(userInfo);
 
       Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);

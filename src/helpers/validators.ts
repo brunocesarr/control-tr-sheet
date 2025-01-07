@@ -31,4 +31,16 @@ const isTokenExpired = (token?: string) => {
   }
 };
 
-export { validateEmail, validateName, validatePassword, isTokenExpired };
+const isAdminToken = (token?: string) => {
+  if (!token) return true;
+  try {
+    const decodedToken: any = jwtDecode(token);
+    if (!decodedToken.isAdmin) return false;
+    return decodedToken.isAdmin.toLowerCase() === 'true';
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return true;
+  }
+};
+
+export { validateEmail, validateName, validatePassword, isTokenExpired, isAdminToken };
