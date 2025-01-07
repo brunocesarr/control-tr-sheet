@@ -51,9 +51,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="font-poppins flex flex-row items-center md:flx-col bg-gray-700 text-base text-white min-h-screen">
+    <div className="font-poppins flex flex-row items-center md:flx-col bg-gray-900 text-base text-white min-h-screen">
       <div className="flex w-full flex-col">
-        <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-800 p-8 shadow-md shadow-slate-400 md:m-auto md:w-[600px]">
+        <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-900 p-8 shadow shadow-slate-400 md:m-auto md:w-[600px]">
           <div className="flex flex-col gap-3 self-start py-2">
             <div className="flex flex-row gap-4">
               <Image className="w-[24px]" src={loginImg} alt="Imagem de Login" />
@@ -126,9 +126,11 @@ const LoginPage = () => {
       </div>
       <div className="hidden w-4/12 md:relative md:block">
         <Image
-          className="md:h-screen md:w-screen md:object-cover"
+          className="md:h-screen md:w-screen md:object-cover opacity-85"
           src="/img/login-img.jpg"
           alt="Imagem de Carro"
+          width={10000}
+          height={10000}
         />
       </div>
       <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />

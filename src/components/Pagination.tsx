@@ -146,9 +146,9 @@ export default function Pagination({ totalPages, pageSize, page, changePage }: P
       <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-gray-900">
-            Mostrando <span className="font-medium">{page}</span> to{' '}
-            <span className="font-medium">{totalPages}</span> de{' '}
-            <span className="font-medium">{totalPages * pageSize}</span> resultados
+            Página <span className="font-medium">{page}</span> de{' '}
+            <span className="font-medium">{totalPages}</span> (
+            <span className="font-medium">{totalPages * pageSize}</span> resultados)
           </p>
         </div>
         <div>
