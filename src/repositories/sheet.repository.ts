@@ -20,6 +20,7 @@ async function readManagerSheet() {
           hasDone: row.hasDone,
         } as SheetRowData;
       })
+      .filter((item: any) => item.name && item.cpf)
       .sort((a: any, b: any) => a.name - b.name);
 
     return rowsData;
