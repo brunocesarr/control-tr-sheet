@@ -16,19 +16,22 @@ import {
   type StatusWriteFormat,
 } from '@/helpers/sheet-status';
 import { withRetry } from '@/helpers/utils';
-import type { SheetRowData } from '@/interfaces/tr-sheet';
+import type { RawSheetRow } from '@/interfaces/tr-sheet';
 import { getSpreadSheetAccountAuth } from '@/repositories/base/apiGoogleSheet';
 
 /**
- * There is deliberately NO hardcoded STATUS_COLUMN constant any more.
+ * There is deliberately NO hardcoded STATUS_COLUMN constant.
  *
- * In this spreadsheet the headers are:
+ * Headers in this spreadsheet are:
  *   A='Coluna 1'  B='STATUS'  C='CPF'  D='NOME'  E='CIB'
  *   F='IMOVEL RURAL'  G='OBSERVAÇÕES'
  *
  * Assuming 'F' (as an earlier revision did) would have written booleans over
- * every rural property name. The column letter is now derived from the header
- * row at runtime, so reordering columns in the sheet is a no-op here.
+ * every rural property name. The column letter is derived from the header row
+ * at runtime, so reordering columns in the sheet is a no-op here.
+ *
+ * This layer returns RawSheetRow, not SheetRowData: `isCpfValid` is derived in
+ * sheet.service.ts so the CPF rule exists in exactly one place.
  */
 
 interface LoadedSheet {
@@ -61,7 +64,6 @@ async function loadSheetWithHeaders(): Promise<LoadedSheet> {
   return { worksheet, headers, statusHeader };
 }
 
-/** Header row occupies `headerRowIndex`, so data rows start just after it. */
 function toCellRange(statusHeader: HeaderMatch, row: GoogleSpreadsheetRow): string {
   return `${statusHeader.letter}${row.rowNumber}`;
 }
@@ -73,7 +75,8 @@ function resolveWriteFormat(currentValue: unknown): StatusWriteFormat {
   return detectWriteFormat(currentValue) ?? 'text';
 }
 
-export async function getSheet(): Promise<SheetRowData[]> {
+/** Returns RawSheetRow[] — enrichment happens in the service layer. */
+export async function getSheet(): Promise<RawSheetRow[]> {
   const { worksheet, headers, statusHeader } = await loadSheetWithHeaders();
   const rows = await withRetry(() => worksheet.getRows());
   const labels = serverEnv.sheetStatusLabels;
@@ -92,7 +95,7 @@ export async function getSheet(): Promise<SheetRowData[]> {
           cib: headers.read(row, COLUMN_ALIASES.cib) || undefined,
           imovelRural: headers.read(row, COLUMN_ALIASES.imovelRural) || undefined,
           observations: headers.read(row, COLUMN_ALIASES.observations) || undefined,
-        } satisfies SheetRowData;
+        } satisfies RawSheetRow;
       })
       // Trailing blank rows are common in shared sheets — drop them.
       .filter((row) => row.cpf !== '' || row.name !== '')

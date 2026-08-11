@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <Html lang="pt-br" suppressHydrationWarning>
+    <Html lang="pt-br" suppressHydrationWarning data-scroll-behavior="smooth">
       <Body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* AuthProvider reads useSearchParams, so it needs a Suspense boundary. */}
         <Suspense fallback={<Loader />}>
