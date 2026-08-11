@@ -1,132 +1,141 @@
+'use client';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React, { useContext, useState } from 'react';
-import { BsArrowLeftCircle } from 'react-icons/bs';
-import { CgProfile } from 'react-icons/cg';
-import { GiHamburgerMenu } from 'react-icons/gi';
-import { MdDashboard } from 'react-icons/md';
-import { PiSignOut } from 'react-icons/pi';
+import { useContext, useState } from 'react';
+import { MdClose, MdDashboard, MdLogout, MdMenu, MdPerson } from 'react-icons/md';
 
+import { AlertModal, ConfirmModal } from '@/components/CustomModals';
 import { AuthContext } from '@/contexts/useAuthContext';
 
-import { AlertModal, ConfirmModal } from './CustomModals';
+/** Now consumes `isAdmin` from context rather than re-deriving it from labels. */
+export default function Sidebar() {
+  const { logout, loggedInUser, isAdmin } = useContext(AuthContext);
+  const pathname = usePathname();
 
-const Sidebar = () => {
-  const { logout, loggedInUser } = useContext(AuthContext);
-
-  const [open, setOpen] = useState(true);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [openAlertModal, setOpenAlertModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const pathname = usePathname();
-
-  const Menus = [
-    { title: 'Dashboard', path: '/home', src: <MdDashboard /> },
-    { title: 'Conta', path: '/profile', src: <CgProfile /> },
-  ];
-
-  const isAdmin = loggedInUser?.labels.includes('admin');
 
   const handleLogout = async () => {
     try {
       await logout();
+      setOpenConfirmModal(false);
     } catch (error) {
-      console.error(error);
-      setErrorMessage('Erro ao realizar o logout.');
+      setErrorMessage(error instanceof Error ? error.message : 'Não foi possível sair da conta.');
       setOpenAlertModal(true);
     }
   };
 
+  const links = [
+    { href: '/home', label: 'Dashboard', icon: MdDashboard, disabled: !isAdmin },
+    { href: '/profile', label: 'Perfil', icon: MdPerson, disabled: false },
+  ];
+
+  const navigation = (
+    <nav className="flex flex-1 flex-col gap-1 p-3">
+      {links.map(({ href, label, icon: Icon, disabled }) => {
+        const isActive = pathname === href || pathname.startsWith(`${href}/`);
+
+        if (disabled) {
+          return (
+            <span
+              key={href}
+              title="Disponível apenas para administradores"
+              className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500">
+              <Icon aria-hidden className="text-lg" /> {label}
+            </span>
+          );
+        }
+
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={() => setMobileMenu(false)}
+            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+              isActive ? 'bg-slate-800 font-medium text-white' : 'text-slate-300 hover:bg-slate-800'
+            }`}>
+            <Icon aria-hidden className="text-lg" /> {label}
+          </Link>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={() => setOpenConfirmModal(true)}
+        className="mt-auto flex items-center gap-3 rounded-md px-3 py-2 text-sm text-red-300 transition hover:bg-slate-800">
+        <MdLogout aria-hidden className="text-lg" /> Sair
+      </button>
+    </nav>
+  );
+
   return (
     <>
-      <aside className="relative hidden min-h-screen w-fit border-r border-gray-600 bg-slate-900 p-5 shadow shadow-gray-900 duration-300 sm:block">
-        <div className="flex h-full flex-col items-stretch justify-between">
-          <div>
-            <BsArrowLeftCircle
-              className={`${
-                !open && 'rotate-180'
-              } absolute -right-4 top-9 cursor-pointer rounded-full bg-gray-900 fill-gray-400 text-3xl`}
-              onClick={() => setOpen(!open)}
-            />
-            {open && (
-              <Link href="/">
-                <div className={`flex flex-row ${open && 'gap-x-4'} items-center justify-end`}>
-                  <span className="whitespace-nowrap text-xl font-medium text-white">Painel</span>
-                </div>
-                <hr className="my-2 h-px border-t-0 bg-neutral-100" />
-              </Link>
-            )}
-            <ul>
-              {Menus.map((menu, index) => (
-                <Link href={menu.path} key={index} className="w-full">
-                  <button
-                    disabled={menu.path === '/home' && !isAdmin}
-                    className={`mt-2 flex w-full cursor-pointer items-center gap-x-6 rounded-lg p-3 text-base font-normal text-white ${
-                      pathname === menu.path && 'bg-gray-200 dark:bg-gray-700'
-                    } ${menu.path === '/home' && !isAdmin ? 'opacity-50' : 'hover:bg-gray-700'}`}>
-                    <span className="text-2xl">{menu.src}</span>
-                    <span className={`${!open && 'hidden'} origin-left duration-300 hover:block`}>
-                      {menu.title}
-                    </span>
-                  </button>
-                </Link>
-              ))}
-            </ul>
-          </div>
-          <button
-            onClick={() => setOpenConfirmModal(true)}
-            className="flex w-full cursor-pointer items-center gap-x-6 rounded-lg p-3 text-base font-normal text-white hover:bg-gray-700">
-            <span className="text-2xl">
-              <PiSignOut />
+      {/* Mobile trigger */}
+      <button
+        type="button"
+        onClick={() => setMobileMenu(true)}
+        aria-label="Abrir menu"
+        className="fixed left-3 top-3 z-40 rounded-md bg-slate-900 p-2 text-white sm:hidden">
+        <MdMenu aria-hidden />
+      </button>
+
+      {/* Desktop */}
+      <aside className="hidden min-h-screen w-60 flex-col border-r border-slate-700 bg-slate-900 sm:flex">
+        <div className="border-b border-slate-700 p-4">
+          <p id="sidebar-user-name" className="truncate text-sm font-medium text-white">
+            {loggedInUser?.name || 'Usuário'}
+          </p>
+          <p id="sidebar-user-email" className="truncate text-xs text-slate-400">
+            {loggedInUser?.email}
+          </p>
+          {isAdmin && (
+            <span className="mt-2 inline-block rounded bg-emerald-600/20 px-2 py-0.5 text-[10px] font-medium uppercase text-emerald-400">
+              Admin
             </span>
-            <span className={`${!open && 'hidden'} origin-left duration-300 hover:block`}>
-              Sair
-            </span>
-          </button>
+          )}
         </div>
+        {navigation}
       </aside>
-      {/* Mobile Menu */}
-      <div className="absolute left-0 top-0 block p-2 sm:hidden">
-        <button
-          onClick={() => setMobileMenu(!mobileMenu)}
-          className="flex w-full cursor-pointer items-center gap-x-6 rounded-lg bg-gray-900 p-3 text-base font-normal text-white hover:bg-gray-800">
-          <span className="text-2xl">
-            <GiHamburgerMenu />
-          </span>
-        </button>
-      </div>
-      <div className="sm:hidden">
-        <div
-          className={`${
-            mobileMenu ? 'flex' : 'hidden'
-          } md absolute inset-x-6 z-50 mt-16 flex-col items-center space-y-6 self-end rounded-xl bg-slate-900 py-8 font-bold text-white drop-shadow sm:w-auto`}>
-          {Menus.map((menu, index) => (
-            <Link href={menu.path} key={index} onClick={() => setMobileMenu(false)}>
-              <span
-                className={` ${
-                  pathname === menu.path && 'bg-gray-700'
-                } rounded-xl p-2 hover:bg-gray-700`}>
-                {menu.title}
-              </span>
-            </Link>
-          ))}
-          <button
-            onClick={() => setOpenConfirmModal(true)}
-            className="flex w-full cursor-pointer items-center justify-center rounded-lg text-base font-bold text-white">
-            <span className="rounded-xl hover:bg-gray-200">Sair</span>
-          </button>
+
+      {/* Mobile drawer */}
+      {mobileMenu && (
+        <div className="fixed inset-0 z-50 flex sm:hidden">
+          <div
+            role="presentation"
+            onClick={() => setMobileMenu(false)}
+            className="absolute inset-0 bg-black/50"
+          />
+          <aside className="relative flex w-64 flex-col bg-slate-900">
+            <button
+              type="button"
+              onClick={() => setMobileMenu(false)}
+              aria-label="Fechar menu"
+              className="absolute right-3 top-3 text-slate-400">
+              <MdClose aria-hidden />
+            </button>
+            <div className="border-b border-slate-700 p-4 pr-10">
+              <p className="truncate text-sm font-medium text-white">
+                {loggedInUser?.name || 'Usuário'}
+              </p>
+              <p className="truncate text-xs text-slate-400">{loggedInUser?.email}</p>
+            </div>
+            {navigation}
+          </aside>
         </div>
-      </div>
+      )}
+
       <ConfirmModal
         open={openConfirmModal}
         setOpen={setOpenConfirmModal}
-        modalDescription="Deseja realmente sair?"
+        title="Sair da conta"
+        message="Deseja encerrar sua sessão?"
+        confirmLabel="Sair"
         confirmAction={handleLogout}
       />
       <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
     </>
   );
-};
-
-export default Sidebar;
+}

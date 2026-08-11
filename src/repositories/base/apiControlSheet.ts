@@ -1,14 +1,38 @@
-import type { AxiosRequestConfig } from 'axios';
-import axios from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 
-const URL_BASE_API_SHEET = process.env.NEXT_PUBLIC_URL_AMBIENTE_SERVER;
+import { clientEnv } from '@/configs/env.client';
 
-const defaultOptions: AxiosRequestConfig = {
-  baseURL: URL_BASE_API_SHEET,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-};
-const apiManagerSheet = axios.create(defaultOptions);
+/**
+ * On the client a relative baseURL is correct (same origin, cookies attached).
+ * On the server an absolute URL is mandatory, so fall back to the env var
+ * and then to Vercel's injected host.
+ */
+function resolveBaseUrl(): string {
+  if (typeof window !== 'undefined') return '';
+  if (clientEnv.baseUrl) return clientEnv.baseUrl;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+}
 
-export { apiManagerSheet };
+export const apiManagerSheet: AxiosInstance = axios.create({
+  baseURL: resolveBaseUrl(),
+  timeout: 30_000,
+  withCredentials: true, // send the httpOnly session cookie
+  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+});
+
+/** Normalises Axios errors into plain Errors with the server's message. */
+apiManagerSheet.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const message =
+      error?.response?.data?.message ?? error?.message ?? 'Erro inesperado na requisição.';
+
+    if (status === 401 && typeof window !== 'undefined') {
+      window.location.assign(`/login?redirectTo=${encodeURIComponent(window.location.pathname)}`);
+    }
+
+    return Promise.reject(Object.assign(new Error(message), { status }));
+  }
+);

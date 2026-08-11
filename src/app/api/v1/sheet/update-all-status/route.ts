@@ -1,74 +1,42 @@
-import { type NextRequest } from 'next/server';
-
-import type { SheetRowData } from '@/interfaces/tr-sheet';
+import { requireAdmin } from '@/helpers/auth.server';
 import { getSheet, updateAllStatus } from '@/repositories/google.repository';
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
-import { cookies } from 'next/headers';
-import { isAdminToken } from '@/helpers/validators';
 
-const isAdmin = async () => {
-  const cookie = await cookies();
-  const token = cookie.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
-  return isAdminToken(token?.value);
-};
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+/**
+ * POST /api/v1/sheet/update-all-status
+ * Body: { hasDone: boolean }
+ *
+ * Diffs before writing so rows already in the target state are skipped.
+ */
+export async function POST(request: Request) {
+  const guard = await requireAdmin();
+  if (guard instanceof Response) return guard;
+
   try {
-    if (!(await isAdmin()))
-      return new Response(
-        JSON.stringify({
-          message: 'Unauthorized',
-        }),
-        { status: 401 }
-      );
+    const body = (await request.json().catch(() => null)) as { hasDone?: unknown } | null;
+    const hasDone =
+      typeof body?.hasDone === 'boolean'
+        ? body.hasDone
+        : String(body?.hasDone).toLowerCase() === 'true';
 
-    const formData = await request.formData();
-    const hasDone = formData.get('has_done');
+    if (body?.hasDone === undefined || body?.hasDone === null) {
+      return Response.json({ message: 'hasDone é obrigatório.' }, { status: 400 });
+    }
 
-    if (hasDone === null) return Response.json('Invalid Paramter', { status: 400 });
+    const rows = await getSheet();
+    const staleRanges = rows.filter((row) => row.hasDone !== hasDone).map((row) => row.cellRange);
 
-    const data = await getSheet();
+    const updated = await updateAllStatus(staleRanges, hasDone);
 
-    if (data == null || Object.values(data).length <= 0)
-      return new Response(null, {
-        status: 204,
-      });
-
-    const response = data
-      .map((row) => {
-        const values = Object.values(row.toObject());
-        const sheetInfos = row.a1Range.split('!');
-
-        return {
-          cellRange: sheetInfos[sheetInfos.length - 1],
-          hasDone: values[0].toLowerCase() == 'true',
-          cpf: values[2],
-          name: values[3],
-          status: values[1],
-          cib: values[4],
-          imovelRural: values[5],
-          observations: values[6],
-        } as SheetRowData;
-      })
-      .filter((row) => row.hasDone !== (hasDone.toString().toLowerCase() === 'true'));
-
-    if (response.length <= 0) return new Response(null, { status: 204 });
-
-    await updateAllStatus(
-      response.map((r) => r.cellRange),
-      hasDone.toString().toLowerCase() === 'true'
-    );
-    return new Response(null, {
-      status: 204,
+    return Response.json({
+      updated,
+      skipped: rows.length - updated,
+      hasDone,
     });
   } catch (error) {
-    const errorMessage = (error as Error).message;
-    return new Response(
-      JSON.stringify({
-        message: 'Internal Server Error',
-        error: errorMessage,
-      }),
-      { status: 500 }
-    );
+    console.error('[api/v1/sheet/update-all-status] POST failed', error);
+    return Response.json({ message: 'Não foi possível atualizar os status.' }, { status: 500 });
   }
 }

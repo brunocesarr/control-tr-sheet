@@ -1,166 +1,218 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, useEffect, useState } from 'react';
-import { Bounce, ToastContainer, toast } from 'react-toastify';
+import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { toast } from 'react-toastify';
 
 import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+import { normaliseText, onlyAlphanumeric, onlyDigits } from '@/helpers/utils';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
-import { updateAllTRStatus, updateTRStatus } from '@/repositories/sheet.repository';
-import { getManagerTable } from '@/services/sheet.service';
+import { getManagerTable, setAllRowsStatus, setRowStatus } from '@/services/sheet.service';
+import localStorageService from '@/services/localStorage.service';
 
-interface ISheetContext {
-  filter: {
-    keyword?: string;
-    status?: string;
-    pageSize: number;
-  };
-  setFilter: ({}: { keyword?: string; status?: string; pageSize: number }) => void;
-  updateStatus: (item: SheetRowData) => Promise<void>;
-  updateAllToNoDeliveryStatus: () => Promise<void>;
-  response: SheetRowData[];
-  isLoading: boolean;
+export type StatusFilter = 'all' | 'done' | 'pending';
+
+export const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100] as const;
+
+export interface SheetFilter {
+  keyword: string;
+  status: StatusFilter;
+  pageSize: number;
 }
 
-export const SheetContext = createContext({} as ISheetContext);
+const DEFAULT_FILTER: SheetFilter = { keyword: '', status: 'all', pageSize: 15 };
 
-const SheetProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [filteredValues, setFilteredValues] = useState<SheetRowData[]>([]);
-  const [filter, setFilter] = useState<{
-    keyword?: string;
-    status?: string;
-    pageSize: number;
-  }>({
-    pageSize: 15,
-  });
+export const SHEET_QUERY_KEY = ['manager-sheet'] as const;
+
+export interface SheetContextValue {
+  isLoading: boolean;
+  isFetching: boolean;
+  isMutating: boolean;
+  error: Error | null;
+  /** Rows after filtering — what the table renders. */
+  response: SheetRowData[];
+  totalRows: number;
+  filter: SheetFilter;
+  setFilter: (filter: SheetFilter) => void;
+  resetFilter: () => void;
+  page: number;
+  setPage: (page: number) => void;
+  totalPages: number;
+  paginatedRows: SheetRowData[];
+  updateStatus: (row: SheetRowData) => Promise<void>;
+  updateAllToNoDeliveryStatus: () => Promise<void>;
+  refetch: () => void;
+}
+
+export const SheetContext = createContext<SheetContextValue>({} as SheetContextValue);
+
+export default function SheetProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
+  // pageSize now persists across visits (priority #6).
+  const [filter, setFilterState] = useState<SheetFilter>(DEFAULT_FILTER);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const saved = localStorageService.getItem<Partial<SheetFilter>>(
+      LocalStorageKeysCache.SHEET_FILTER_PREFERENCES
+    );
+    if (saved?.pageSize && PAGE_SIZE_OPTIONS.includes(saved.pageSize as never)) {
+      setFilterState((current) => ({ ...current, pageSize: saved.pageSize! }));
+    }
+  }, []);
+
+  const setFilter = useCallback((next: SheetFilter) => {
+    setFilterState(next);
+    setPage(1); // any filter change invalidates the current page
+    localStorageService.setItem(
+      LocalStorageKeysCache.SHEET_FILTER_PREFERENCES,
+      { pageSize: next.pageSize },
+      null
+    );
+  }, []);
+
+  const resetFilter = useCallback(() => {
+    setFilterState((current) => ({ ...DEFAULT_FILTER, pageSize: current.pageSize }));
+    setPage(1);
+  }, []);
+
   const {
-    isLoading: isLoadingData,
-    data,
-    error,
+    data = [],
+    isLoading,
     isFetching,
-    isPending,
-  } = useQuery({
-    queryKey: [LocalStorageKeysCache.GOOGLE_SHEET_SERVICE_GET_TR_SHEET],
-    queryFn: async () => {
-      return getManagerTable();
-    },
-    staleTime: 60 * 1000,
+    error,
+    refetch,
+  } = useQuery<SheetRowData[], Error>({
+    queryKey: SHEET_QUERY_KEY,
+    queryFn: getManagerTable,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      return getManagerTable();
+  const filteredValues = useMemo(() => {
+    const keyword = normaliseText(filter.keyword);
+    const keywordDigits = onlyDigits(filter.keyword);
+    const keywordAlnum = onlyAlphanumeric(filter.keyword).toLowerCase();
+
+    return data.filter((value) => {
+      if (filter.status === 'done' && !value.hasDone) return false;
+      if (filter.status === 'pending' && value.hasDone) return false;
+      if (!keyword) return true;
+
+      const matchesName = normaliseText(value.name).includes(keyword);
+      const matchesCpf = keywordDigits.length > 0 && onlyDigits(value.cpf).includes(keywordDigits);
+      const matchesCib =
+        keywordAlnum.length > 0 && onlyAlphanumeric(value.cib).toLowerCase().includes(keywordAlnum);
+      const matchesProperty = normaliseText(value.imovelRural).includes(keyword);
+      const matchesObservations = normaliseText(value.observations).includes(keyword);
+
+      return matchesName || matchesCpf || matchesCib || matchesProperty || matchesObservations;
+    });
+  }, [data, filter.keyword, filter.status]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredValues.length / filter.pageSize));
+
+  // Guard against landing on a page that no longer exists.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * filter.pageSize;
+    return filteredValues.slice(start, start + filter.pageSize);
+  }, [filteredValues, page, filter.pageSize]);
+
+  /** Optimistic single-row toggle with rollback. */
+  const toggleMutation = useMutation({
+    mutationFn: ({ row, hasDone }: { row: SheetRowData; hasDone: boolean }) =>
+      setRowStatus(row, hasDone),
+    onMutate: async ({ row, hasDone }) => {
+      await queryClient.cancelQueries({ queryKey: SHEET_QUERY_KEY });
+      const previous = queryClient.getQueryData<SheetRowData[]>(SHEET_QUERY_KEY);
+
+      queryClient.setQueryData<SheetRowData[]>(SHEET_QUERY_KEY, (current = []) =>
+        current.map((item) =>
+          item.cellRange === row.cellRange
+            ? { ...item, hasDone, status: hasDone ? 'Entregue' : 'Não entregue' }
+            : item
+        )
+      );
+
+      return { previous };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [LocalStorageKeysCache.GOOGLE_SHEET_SERVICE_GET_TR_SHEET],
-      });
+    onError: (mutationError, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(SHEET_QUERY_KEY, context.previous);
+      toast.error((mutationError as Error).message || 'Não foi possível atualizar o status.');
     },
+    onSuccess: () => toast.success('Status atualizado com sucesso.'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: SHEET_QUERY_KEY }),
   });
 
-  useEffect(() => {
-    if (error && !isFetching) {
-      console.error(error);
-      toast.error('Erro ao carregar dados');
-    }
-  }, [error, isFetching]);
+  const bulkMutation = useMutation({
+    mutationFn: () => setAllRowsStatus(false),
+    onSuccess: ({ updated, skipped }) => {
+      toast.success(
+        updated === 0
+          ? 'Nenhum registro precisava ser alterado.'
+          : `${updated} registro(s) marcados como não entregues. ${skipped} já estavam corretos.`
+      );
+      void queryClient.invalidateQueries({ queryKey: SHEET_QUERY_KEY });
+    },
+    onError: (mutationError) =>
+      toast.error((mutationError as Error).message || 'Não foi possível atualizar os status.'),
+  });
 
-  useEffect(() => {
-    if (!data || data.length === 0) return;
-
-    const { keyword, status } = filter;
-    if (keyword || status) {
-      setIsLoading(true);
-      let filteredSearch = data?.map((v) => v) ?? [];
-
-      const { keyword, status } = filter;
-
-      if (keyword && keyword.length > 2) {
-        filteredSearch = filteredSearch.filter((value) => {
-          const foundedByName = value.name.toLowerCase().includes(keyword.toLowerCase());
-          const foundedByCPF = value.cpf.replace(/\D/g, '').startsWith(keyword);
-          const foundedByCIB = value.cib
-            ?.replace(/[^a-zA-Z0-9]/g, '')
-            .toLocaleLowerCase()
-            .startsWith(keyword.toLocaleLowerCase());
-          const foundedByRuralProperty = value.imovelRural
-            ?.toLowerCase()
-            .includes(keyword.toLowerCase());
-
-          return foundedByName || foundedByCPF || foundedByCIB || foundedByRuralProperty;
-        });
-      }
-      if (status !== undefined && status !== null) {
-        if (status === 'entregue') filteredSearch = filteredSearch.filter((value) => value.hasDone);
-        if (status === 'nao entregue')
-          filteredSearch = filteredSearch.filter((value) => !value.hasDone);
-      }
-      setFilteredValues(filteredSearch);
-      setIsLoading(false);
-    } else {
-      setFilteredValues(data);
-    }
-  }, [data, filter]);
-
-  const updateStatus = async (item: SheetRowData) => {
-    try {
-      setIsLoading(true);
-      await updateTRStatus(item.cellRange, !item.hasDone);
-      await mutation.mutateAsync();
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao atualizar status');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateAllToNoDeliveryStatus = async () => {
-    try {
-      setIsLoading(true);
-      if (!data) return;
-
-      await updateAllTRStatus(false);
-      await mutation.mutateAsync();
-      window.location.reload();
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao atualizar status');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const providerValue = {
-    filter,
-    setFilter,
-    response: filteredValues,
-    updateStatus,
-    updateAllToNoDeliveryStatus,
-    isLoading: isLoading || isLoadingData || isFetching || isPending,
-  };
-
-  return (
-    <SheetContext.Provider value={providerValue}>
-      {children}{' '}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick={false}
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        transition={Bounce}
-      />
-    </SheetContext.Provider>
+  const updateStatus = useCallback(
+    async (row: SheetRowData) => {
+      await toggleMutation.mutateAsync({ row, hasDone: !row.hasDone });
+    },
+    [toggleMutation]
   );
-};
 
-export default SheetProvider;
+  const updateAllToNoDeliveryStatus = useCallback(async () => {
+    await bulkMutation.mutateAsync();
+  }, [bulkMutation]);
+
+  const value = useMemo<SheetContextValue>(
+    () => ({
+      isLoading,
+      isFetching,
+      isMutating: toggleMutation.isPending || bulkMutation.isPending,
+      error: error ?? null,
+      response: filteredValues,
+      totalRows: data.length,
+      filter,
+      setFilter,
+      resetFilter,
+      page,
+      setPage,
+      totalPages,
+      paginatedRows,
+      updateStatus,
+      updateAllToNoDeliveryStatus,
+      refetch,
+    }),
+    [
+      isLoading,
+      isFetching,
+      toggleMutation.isPending,
+      bulkMutation.isPending,
+      error,
+      filteredValues,
+      data.length,
+      filter,
+      setFilter,
+      resetFilter,
+      page,
+      totalPages,
+      paginatedRows,
+      updateStatus,
+      updateAllToNoDeliveryStatus,
+      refetch,
+    ]
+  );
+
+  return <SheetContext.Provider value={value}>{children}</SheetContext.Provider>;
+}

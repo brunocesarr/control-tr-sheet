@@ -1,16 +1,24 @@
+import { clientEnv } from '@/configs/env.client';
+
+/**
+ * Cache / cookie key names, suffixed per environment so that a local dev
+ * session can never be mistaken for a production one in the same browser.
+ */
+const suffix = clientEnv.environmentSuffix ? `_${clientEnv.environmentSuffix}` : '';
+
 export class LocalStorageKeysCache {
-  static readonly GOOGLE_SHEET_SERVICE_GET_TR_SHEET: string = process.env
-    .NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP
-    ? `tr_sheet_${process.env.NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP}`
-    : 'tr_sheet';
+  /** httpOnly session cookie set by POST /api/v1/auth/session. */
+  static readonly AUTHENTICATION_SESSION_USER_TR_SHEET: string = `user_session${suffix}`;
 
-  static readonly GOOGLE_SHEET_SERVICE_GET_TR_SHEET_TITLE: string = process.env
-    .NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP
-    ? `tr_sheet-title_${process.env.NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP}`
-    : 'tr_sheet_title';
+  /** Cached sheet payload (non-sensitive, obfuscated only). */
+  static readonly CACHE_SHEET_TR_DATA: string = `sheet_tr_data${suffix}`;
 
-  static readonly AUTHENTICATION_SESSION_USER_TR_SHEET: string = process.env
-    .NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP
-    ? `user_session_${process.env.NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP}`
-    : 'user_session';
+  /** Persisted table filter preferences. */
+  static readonly SHEET_FILTER_PREFERENCES: string = `sheet_filter${suffix}`;
 }
+
+/**
+ * The middleware runs in the Edge runtime and cannot import client env,
+ * so it needs the raw name too. Keep this in sync with the class above.
+ */
+export const SESSION_COOKIE_NAME = LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET;

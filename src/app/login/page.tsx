@@ -1,141 +1,122 @@
 'use client';
 
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useContext, useEffect, useState } from 'react';
-import { AiOutlineLoading3Quarters } from 'react-icons/ai';
-import { MdAlternateEmail } from 'react-icons/md';
-import { TbLockPassword } from 'react-icons/tb';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useContext, useState } from 'react';
 
-import eye from '@/assets/eye.svg';
-import loginImg from '@/assets/log-in.svg';
-import { AlertModal } from '@/components/CustomModals';
+import AuthShell from '@/components/auth/AuthShell';
+import FormBanner from '@/components/auth/FormBanner';
+import SubmitButton from '@/components/auth/SubmitButton';
+import TextField from '@/components/auth/TextField';
 import { AuthContext } from '@/contexts/useAuthContext';
 import { validateEmail } from '@/helpers/validators';
 
-const LoginPage = () => {
-  const { login, isLoading, loggedInUser } = useContext(AuthContext);
-  const router = useRouter();
+export default function LoginPage() {
+  const { login } = useContext(AuthContext);
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordShow, setPasswordShow] = useState(false);
-  const [openAlertModal, setOpenAlertModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (loggedInUser) router.push('/home');
-  }, [loggedInUser, router]);
+  const sessionExpired = searchParams.get('reason') === 'expired';
+  const justRegistered = searchParams.get('reason') === 'registered';
+  const passwordReset = searchParams.get('reason') === 'reset';
 
-  const handleLogin = async () => {
+  const emailError = touched.email && !validateEmail(email) ? 'Informe um e-mail válido.' : '';
+  const passwordError = touched.password && !password ? 'Informe sua senha.' : '';
+  const canSubmit = validateEmail(email) && password.length > 0;
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setTouched({ email: true, password: true });
+    setFormError('');
+
+    if (!canSubmit) return;
+
+    setIsSubmitting(true);
     try {
-      if (!email || !password || !validateEmail(email)) {
-        setErrorMessage('Preencha todos os campos corretamente.');
-        setOpenAlertModal(true);
-        return;
-      }
-      await login(email, password);
+      // Navigation happens inside login() once the cookie is set.
+      await login(email.trim(), password);
     } catch (error) {
-      console.error(`Login:${error}`);
-      setErrorMessage('Erro ao realizar o login.');
-      setOpenAlertModal(true);
+      setFormError(error instanceof Error ? error.message : 'Não foi possível entrar.');
+      setPassword('');
+      setIsSubmitting(false);
     }
   };
 
-  const handleRegister = () => {
-    router.push('/register');
-  };
-
-  const handlePasswordShow = () => {
-    setPasswordShow(!passwordShow);
-  };
+  /** Preserve the original destination when bouncing between auth screens. */
+  const redirectTo = searchParams.get('redirectTo');
+  const withRedirect = (path: string) =>
+    redirectTo ? `${path}?redirectTo=${encodeURIComponent(redirectTo)}` : path;
 
   return (
-    <div className="font-poppins flex flex-row items-center md:flx-col bg-gray-900 text-base text-white min-h-screen">
-      <div className="flex w-full flex-col">
-        <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-900 p-8 shadow shadow-slate-400 md:m-auto md:w-[600px]">
-          <div className="flex flex-col gap-3 self-start py-2">
-            <div className="flex flex-row gap-4">
-              <Image className="w-[24px]" src={loginImg} alt="Imagem de Login" />
-              <h1 className="text-xl">Faça seu login</h1>
-            </div>
-          </div>
+    <AuthShell
+      eyebrow="Acesso restrito"
+      title="Bem-vindo de volta"
+      subtitle="Entre com suas credenciais para acessar o painel."
+      footer={
+        <p className="text-center text-sm text-slate-600">
+          Ainda não tem conta?{' '}
+          <Link
+            href={withRedirect('/register')}
+            className="font-semibold text-emerald-600 hover:text-emerald-500">
+            Criar conta
+          </Link>
+        </p>
+      }>
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+        {sessionExpired && (
+          <FormBanner tone="info">
+            Sua sessão expirou por inatividade. Entre novamente para continuar.
+          </FormBanner>
+        )}
+        {justRegistered && (
+          <FormBanner tone="success">Conta criada! Entre com suas credenciais.</FormBanner>
+        )}
+        {passwordReset && (
+          <FormBanner tone="success">Senha redefinida. Entre com a nova senha.</FormBanner>
+        )}
+        {formError && <FormBanner tone="error">{formError}</FormBanner>}
 
-          <div className="flex flex-col py-2">
-            <form className="flex flex-col gap-4">
-              <div className="flex flex-col">
-                <label className="mb-2 text-base font-bold">E-mail</label>
-                <div className="relative flex flex-col justify-center">
-                  <MdAlternateEmail
-                    className={`absolute left-2 text-xl ${email ? 'text-yellow-600' : 'text-gray-400'}`}
-                  />
-                  <input
-                    className="bg-form hover:border-prim w-full rounded border-2 border-white p-2 pl-8 text-black outline-none focus:border-amber-400"
-                    type="email"
-                    placeholder="Digite seu email"
-                    onChange={(e) => setEmail(e.target.value)}
-                    value={email}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col">
-                <label className="mb-2 text-base font-bold">Senha</label>
-                <div className="relative flex flex-col justify-center">
-                  <TbLockPassword
-                    className={`absolute left-2 text-xl ${password ? 'text-yellow-600' : 'text-gray-400'}`}
-                  />
-                  <input
-                    className="hover:border-prim w-full rounded border-2 border-white p-2 pl-8 text-black outline-none focus:border-amber-400"
-                    type={passwordShow ? 'text' : 'password'}
-                    placeholder="Digite sua senha"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
-                  <Image
-                    className="absolute right-3 cursor-pointer"
-                    title={passwordShow ? 'Esconder Senha' : 'Mostrar Senha'}
-                    src={eye}
-                    onClick={handlePasswordShow}
-                    alt="Botão de aparecer mensagem"
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                className="center mt-4 flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-md bg-cyan-900 font-bold transition hover:bg-cyan-800"
-                disabled={isLoading}
-                onClick={handleLogin}>
-                {isLoading ? (
-                  <AiOutlineLoading3Quarters className="animate-spin text-white" />
-                ) : (
-                  'Entrar'
-                )}
-              </button>
-            </form>
-          </div>
-          <span className="mb-4 flex w-full items-end justify-end gap-2 text-base font-light">
-            Não tem uma conta?{' '}
-            <button type="button" className="font-bold text-blue-300" onClick={handleRegister}>
-              Registre-se
-            </button>
-          </span>
-        </div>
-      </div>
-      <div className="hidden w-4/12 md:relative md:block">
-        <Image
-          className="md:h-screen md:w-screen md:object-cover opacity-85"
-          src="/img/login-img.jpg"
-          alt="Imagem de Carro"
-          width={10000}
-          height={10000}
+        <TextField
+          label="E-mail"
+          type="email"
+          autoComplete="email"
+          placeholder="voce@empresa.com.br"
+          value={email}
+          onChange={setEmail}
+          onBlur={() => setTouched((current) => ({ ...current, email: true }))}
+          error={emailError}
+          disabled={isSubmitting}
+          autoFocus
         />
-      </div>
-      <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
-    </div>
-  );
-};
 
-export default LoginPage;
+        <div className="flex flex-col gap-1.5">
+          <TextField
+            label="Senha"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={password}
+            onChange={setPassword}
+            onBlur={() => setTouched((current) => ({ ...current, password: true }))}
+            error={passwordError}
+            disabled={isSubmitting}
+          />
+          <Link
+            href="/recover"
+            className="self-end text-xs font-medium text-emerald-600 hover:text-emerald-500">
+            Esqueci minha senha
+          </Link>
+        </div>
+
+        <SubmitButton isSubmitting={isSubmitting} pendingLabel="Entrando…" disabled={!canSubmit}>
+          Entrar
+        </SubmitButton>
+      </form>
+    </AuthShell>
+  );
+}

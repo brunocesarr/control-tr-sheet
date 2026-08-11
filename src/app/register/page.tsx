@@ -1,183 +1,150 @@
 'use client';
 
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useContext, useState } from 'react';
-import { AiOutlineLoading3Quarters } from 'react-icons/ai';
-import { CiUser } from 'react-icons/ci';
-import { MdAlternateEmail } from 'react-icons/md';
-import { TbLockPassword } from 'react-icons/tb';
 
-import eye from '@/assets/eye.svg';
-import loginImg from '@/assets/log-in.svg';
-import { AlertModal } from '@/components/CustomModals';
+import AuthShell from '@/components/auth/AuthShell';
+import FormBanner from '@/components/auth/FormBanner';
+import PasswordChecklist from '@/components/auth/PasswordChecklist';
+import SubmitButton from '@/components/auth/SubmitButton';
+import TextField from '@/components/auth/TextField';
 import { AuthContext } from '@/contexts/useAuthContext';
 import { validateEmail, validateName, validatePassword } from '@/helpers/validators';
 
-const RegisterPage = () => {
-  const { register, isLoading } = useContext(AuthContext);
-  const router = useRouter();
+export default function RegisterPage() {
+  const { register } = useContext(AuthContext);
+  const searchParams = useSearchParams();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordShow, setPasswordShow] = useState(false);
-  const [openAlertModal, setOpenAlertModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    password: false,
+    confirm: false,
+  });
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isValidName = name ? validateName(name) : true;
-  const isValidCurrentEmail = email ? validateEmail(email) : true;
-  const isValidCurrentPassword = password ? validatePassword(password) : true;
+  const markTouched = (field: keyof typeof touched) =>
+    setTouched((current) => ({ ...current, [field]: true }));
 
-  const handleRegister = async () => {
+  const nameError =
+    touched.name && !validateName(name) ? 'Use de 2 a 60 letras (acentos permitidos).' : '';
+  const emailError = touched.email && !validateEmail(email) ? 'Informe um e-mail válido.' : '';
+  const passwordError =
+    touched.password && !validatePassword(password) ? 'A senha não atende aos requisitos.' : '';
+  const confirmError =
+    touched.confirm && confirmPassword !== password ? 'As senhas não coincidem.' : '';
+
+  const canSubmit =
+    validateName(name) &&
+    validateEmail(email) &&
+    validatePassword(password) &&
+    confirmPassword === password;
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setTouched({ name: true, email: true, password: true, confirm: true });
+    setFormError('');
+
+    if (!canSubmit) return;
+
+    setIsSubmitting(true);
     try {
-      if (!email || !password) {
-        setErrorMessage('Preencha todos os campos');
-        setOpenAlertModal(true);
-        return;
-      }
-      await register(name, email, password);
+      // register() signs in and navigates on success.
+      await register(name.trim(), email.trim(), password);
     } catch (error) {
-      console.error(error);
-      setErrorMessage('Erro ao realizar o cadastro.');
-      setOpenAlertModal(true);
+      setFormError(error instanceof Error ? error.message : 'Não foi possível criar a conta.');
+      setIsSubmitting(false);
     }
   };
 
-  const handleLogin = () => {
-    router.push('/login');
-  };
-
-  const handlePasswordShow = () => {
-    setPasswordShow(!passwordShow);
-  };
+  const redirectTo = searchParams.get('redirectTo');
+  const loginHref = redirectTo ? `/login?redirectTo=${encodeURIComponent(redirectTo)}` : '/login';
 
   return (
-    <div className="font-poppins flex flex-row items-center bg-gray-900 text-base text-white min-h-screen">
-      <div className="flex w-full flex-col md:flex md:flex-col">
-        <div className="md:bg-form flex flex-col gap-2 rounded-2xl bg-slate-900 p-8 shadow shadow-slate-400 md:m-auto md:w-[600px]">
-          <div className="flex flex-col gap-3 self-start py-2">
-            <div className="flex flex-row gap-4">
-              <Image className="w-[24px]" src={loginImg} alt="Imagem de Login" />
-              <h1 className="text-xl">Faça seu cadastro</h1>
-            </div>
-          </div>
+    <AuthShell
+      eyebrow="Primeiro acesso"
+      title="Criar sua conta"
+      subtitle="Leva menos de um minuto. O acesso ao painel é liberado por um administrador."
+      footer={
+        <p className="text-center text-sm text-slate-600">
+          Já tem uma conta?{' '}
+          <Link href={loginHref} className="font-semibold text-emerald-600 hover:text-emerald-500">
+            Entrar
+          </Link>
+        </p>
+      }>
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+        {formError && <FormBanner tone="error">{formError}</FormBanner>}
 
-          <div className="flex flex-col py-2">
-            <form className="flex flex-col gap-4">
-              <div className="flex flex-col">
-                <label className="mb-2 text-base font-bold">Nome</label>
-                <div className="relative flex flex-col justify-center">
-                  <CiUser
-                    className={`absolute left-2 text-xl ${name ? (isValidName ? 'text-amber-400' : 'text-red-600') : 'text-gray-400'}`}
-                  />
-                  <input
-                    className={`bg-form hover:border-prim w-full rounded border-2 p-2 pl-8 text-black outline-none focus:border-amber-400 ${!isValidName ? 'border-red-600' : 'border-white'}`}
-                    type="text"
-                    placeholder="Digite seu nome"
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={isLoading}
-                    value={name}
-                  />
-                </div>
-                {!isValidName && (
-                  <label className="mt-0.5 text-xs font-light text-red-600">
-                    Insira um nome válido
-                  </label>
-                )}
-              </div>
-
-              <div className="flex flex-col">
-                <label className="mb-2 text-base font-bold">E-mail</label>
-                <div className="relative flex flex-col justify-center">
-                  <MdAlternateEmail
-                    className={`absolute left-2 text-xl ${email ? (isValidCurrentEmail ? 'text-amber-400' : 'text-red-600') : 'text-gray-400'}`}
-                  />
-                  <input
-                    className={`bg-form hover:border-prim w-full rounded border-2 p-2 pl-8 text-black outline-none focus:border-amber-400 ${!isValidCurrentEmail ? 'border-red-600' : 'border-white'}`}
-                    type="email"
-                    placeholder="Digite seu email"
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    value={email}
-                  />
-                </div>
-                {!isValidCurrentEmail && (
-                  <label className="mt-0.5 text-xs font-light text-red-600">
-                    Insira um e-mail válido
-                  </label>
-                )}
-              </div>
-
-              <div className="flex flex-col">
-                <label className="mb-2 text-base font-bold">Senha</label>
-                <div className="relative flex flex-col justify-center">
-                  <TbLockPassword
-                    className={`absolute left-2 text-xl ${password ? (isValidCurrentPassword ? 'text-amber-600' : 'text-red-600') : 'text-gray-400'}`}
-                  />
-                  <input
-                    className={`hover:border-prim w-full rounded border-2 p-2 pl-8 text-black outline-none focus:border-amber-400 ${!isValidCurrentPassword ? 'border-red-600' : 'border-white'}`}
-                    type={passwordShow ? 'text' : 'password'}
-                    placeholder="Digite sua senha"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
-                  <Image
-                    className="absolute right-3 cursor-pointer"
-                    title={passwordShow ? 'Esconder Senha' : 'Mostrar Senha'}
-                    src={eye}
-                    onClick={handlePasswordShow}
-                    alt="Botão de aparecer mensagem"
-                  />
-                </div>
-                {!isValidCurrentPassword && (
-                  <label className="mt-0.5 text-xs font-light text-red-600">
-                    <div className="flex flex-col">
-                      <p>Insira uma senha válida. Deve conter pelo menos:</p>
-                      <li>8 a 16 caracteres</li>
-                      <li>Um número</li>
-                      <li>Uma letra maiúscula</li>
-                      <li>Uma letra minúscula</li>
-                      <li>Um caractere especial</li>
-                    </div>
-                  </label>
-                )}
-              </div>
-
-              <button
-                type="button"
-                className="center mt-4 flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-md bg-cyan-900 font-bold transition hover:bg-cyan-800"
-                disabled={isLoading}
-                onClick={handleRegister}>
-                {isLoading ? (
-                  <AiOutlineLoading3Quarters className="animate-spin text-white" />
-                ) : (
-                  'Cadastre-se'
-                )}
-              </button>
-            </form>
-          </div>
-          <span className="mb-4 flex w-full items-end justify-end gap-2 text-base font-light">
-            Já tem uma conta?{' '}
-            <button type="button" className="font-bold text-blue-300" onClick={handleLogin}>
-              Login
-            </button>
-          </span>
-        </div>
-      </div>
-      <div className="hidden w-4/12 md:relative md:block">
-        <Image
-          className="md:h-screen md:w-screen md:object-cover opacity-85"
-          src="/img/login-img.jpg"
-          alt="Imagem de Carro"
-          width={10000}
-          height={10000}
+        <TextField
+          label="Nome completo"
+          autoComplete="name"
+          placeholder="Maria Silva"
+          value={name}
+          onChange={setName}
+          onBlur={() => markTouched('name')}
+          error={nameError}
+          disabled={isSubmitting}
+          autoFocus
         />
-      </div>
-      <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
-    </div>
-  );
-};
 
-export default RegisterPage;
+        <TextField
+          label="E-mail"
+          type="email"
+          autoComplete="email"
+          placeholder="voce@empresa.com.br"
+          value={email}
+          onChange={setEmail}
+          onBlur={() => markTouched('email')}
+          error={emailError}
+          disabled={isSubmitting}
+        />
+
+        <div className="flex flex-col gap-2">
+          <TextField
+            label="Senha"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            value={password}
+            onChange={setPassword}
+            onBlur={() => markTouched('password')}
+            error={passwordError}
+            disabled={isSubmitting}
+          />
+          <PasswordChecklist password={password} />
+        </div>
+
+        <TextField
+          label="Confirmar senha"
+          type="password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          value={confirmPassword}
+          onChange={setConfirmPassword}
+          onBlur={() => markTouched('confirm')}
+          error={confirmError}
+          disabled={isSubmitting}
+        />
+
+        <SubmitButton
+          isSubmitting={isSubmitting}
+          pendingLabel="Criando conta…"
+          disabled={!canSubmit}>
+          Criar conta
+        </SubmitButton>
+
+        <p className="text-center text-xs leading-relaxed text-slate-500">
+          O painel de ITRs exige permissão de administrador. Após o cadastro, solicite a liberação
+          ao responsável.
+        </p>
+      </form>
+    </AuthShell>
+  );
+}

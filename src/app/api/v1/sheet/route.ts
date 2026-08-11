@@ -1,91 +1,50 @@
-import { type NextRequest } from 'next/server';
-
-import type { SheetRowData } from '@/interfaces/tr-sheet';
+import { requireAdmin } from '@/helpers/auth.server';
 import { getSheet, updateStatus } from '@/repositories/google.repository';
-import { isAdminToken } from '@/helpers/validators';
-import { cookies } from 'next/headers';
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
 
-const isAdmin = async () => {
-  const cookie = await cookies();
-  const token = cookie.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
-  return isAdminToken(token?.value);
-};
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
+/** GET /api/v1/sheet — full ITR list. */
 export async function GET() {
+  const guard = await requireAdmin();
+  if (guard instanceof Response) return guard;
+
   try {
-    if (!(await isAdmin()))
-      return new Response(
-        JSON.stringify({
-          message: 'Unauthorized',
-        }),
-        { status: 401 }
-      );
-
-    const data = await getSheet();
-
-    if (data == null || Object.values(data).length <= 0)
-      return new Response(null, {
-        status: 204,
-      });
-
-    const response = data.map((row) => {
-      const values = Object.values(row.toObject());
-      const sheetInfos = row.a1Range.split('!');
-      return {
-        cellRange: sheetInfos[sheetInfos.length - 1],
-        hasDone: values[0].toLowerCase() == 'true',
-        cpf: values[2],
-        name: values[3],
-        status: values[1],
-        cib: values[4],
-        imovelRural: values[5],
-        observations: values[6],
-      } as SheetRowData;
+    const rows = await getSheet();
+    return Response.json(rows, {
+      headers: { 'Cache-Control': 'private, no-store' },
     });
-
-    return Response.json(response);
   } catch (error) {
-    const errorMessage = (error as Error).message;
-    return new Response(
-      JSON.stringify({
-        message: 'Internal Server Error',
-        error: errorMessage,
-      }),
-      { status: 500 }
-    );
+    console.error('[api/v1/sheet] GET failed', error);
+    // Never echo raw error messages — they can leak sheet ids / emails.
+    return Response.json({ message: 'Não foi possível carregar a planilha.' }, { status: 500 });
   }
 }
 
-export async function PATCH(request: NextRequest) {
+/** PATCH /api/v1/sheet — toggle one row. Body: { cellRange, hasDone } */
+export async function PATCH(request: Request) {
+  const guard = await requireAdmin();
+  if (guard instanceof Response) return guard;
+
   try {
-    if (!(await isAdmin()))
-      return new Response(
-        JSON.stringify({
-          message: 'Unauthorized',
-        }),
-        { status: 401 }
-      );
+    const body = (await request.json().catch(() => null)) as {
+      cellRange?: string;
+      hasDone?: boolean;
+    } | null;
 
-    const formData = await request.formData();
-    const range = formData.get('range');
-    const hasDone = formData.get('has_done');
+    // Whitelist the A1 reference — this string is interpolated into a
+    // spreadsheet range, so it must never accept arbitrary input.
+    if (!body?.cellRange || !/^[A-Z]{1,3}[1-9]\d{0,6}$/.test(body.cellRange)) {
+      return Response.json({ message: 'cellRange inválido.' }, { status: 400 });
+    }
+    if (typeof body.hasDone !== 'boolean') {
+      return Response.json({ message: 'hasDone deve ser booleano.' }, { status: 400 });
+    }
 
-    if (!range || range.toString().length <= 0 || hasDone === null)
-      return Response.json('Invalid Paramter', { status: 400 });
-
-    await updateStatus(range.toString(), hasDone.toString().toLowerCase() === 'true');
-    return new Response(null, {
-      status: 204,
-    });
+    await updateStatus(body.cellRange, body.hasDone);
+    return Response.json({ cellRange: body.cellRange, hasDone: body.hasDone });
   } catch (error) {
-    const errorMessage = (error as Error).message;
-    return new Response(
-      JSON.stringify({
-        message: 'Internal Server Error',
-        error: errorMessage,
-      }),
-      { status: 500 }
-    );
+    console.error('[api/v1/sheet] PATCH failed', error);
+    return Response.json({ message: 'Não foi possível atualizar o status.' }, { status: 500 });
   }
 }

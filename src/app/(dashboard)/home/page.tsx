@@ -1,36 +1,30 @@
-'use client';
+import type { Metadata } from 'next';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { useContext, useEffect } from 'react';
-
-import { FilterSection } from '@/components/FilterSection';
+import FilterSection from '@/components/FilterSection';
 import Navbar from '@/components/Navbar';
 import Table from '@/components/Table';
-import { AuthContext } from '@/contexts/useAuthContext';
 import SheetProvider from '@/contexts/useSheetContext';
+import QueryProvider from '@/providers/QueryProvider';
 
-const queryClient = new QueryClient();
+export const metadata: Metadata = { title: 'Dashboard' };
 
-export default function Home() {
-  const { loggedInUser } = useContext(AuthContext);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loggedInUser && !loggedInUser.labels.includes('admin')) return router.push('/profile');
-  }, [loggedInUser, router]);
-
+/**
+ * Now a Server Component. The admin check moved to middleware.ts, which
+ * eliminates the flash of dashboard content non-admins used to see while
+ * the old useEffect redirect was still pending.
+ */
+export default function HomePage() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryProvider>
       <SheetProvider>
-        <div className="size-full">
-          <Navbar>
-            <p>Lista de ITR{"'"}s</p>
-          </Navbar>
-          <FilterSection />
-          <Table />
-        </div>
+        <main className="flex h-full flex-col">
+          <Navbar>Controle de ITR&apos;s</Navbar>
+          <div className="flex flex-col gap-4 p-4 sm:p-6">
+            <FilterSection />
+            <Table />
+          </div>
+        </main>
       </SheetProvider>
-    </QueryClientProvider>
+    </QueryProvider>
   );
 }

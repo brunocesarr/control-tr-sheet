@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Types · Tests · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:run
+        env:
+          JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-only-secret-value-at-least-32-chars-long' }}
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time placeholders — no real credentials needed to compile.
+          NEXT_PUBLIC_APP_WRITE_PROJECT_ID: ci-placeholder
+          NEXT_PUBLIC_URL_AMBIENTE_SERVER: http://localhost:3000
+          NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP: ci
+          NEXT_PUBLIC_STORAGE_OBFUSCATION_KEY: ci-placeholder
+          JWT_SECRET: ci-only-secret-value-at-least-32-chars-long
+          GOOGLE_SERVICE_SHEET_ID: ci-placeholder
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ci@placeholder.iam.gserviceaccount.com
+          GOOGLE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nci\n-----END PRIVATE KEY-----\n"
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+        continue-on-error: true

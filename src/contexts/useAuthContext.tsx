@@ -1,176 +1,294 @@
 'use client';
 
 import type { Models } from 'appwrite';
-import Cookies from 'js-cookie';
-import { usePathname, useRouter } from 'next/navigation';
-import { createContext, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { ID, account } from '@/configs/appwrite';
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
-import { isTokenExpired } from '@/helpers/validators';
-import { generateJWT } from '@/helpers/utils';
+import { rethrowTranslated } from '@/helpers/appwrite-errors';
 
-interface IAuthContext {
+/**
+ * Auth is a two-step handshake:
+ *   1. Appwrite authenticates the credentials (browser SDK).
+ *   2. We mint an httpOnly session cookie server-side via
+ *      POST /api/v1/auth/session, which re-validates with Appwrite.
+ *
+ * Every method translates Appwrite errors before re-throwing, so consumers can
+ * render `error.message` directly.
+ */
+
+const SESSION_ENDPOINT = '/api/v1/auth/session';
+/** Our cookie lives 1h; refresh comfortably before that. */
+const REFRESH_INTERVAL_MS = 45 * 60 * 1000;
+
+export interface AuthContextValue {
+  isLoading: boolean;
   loggedInUser: Models.User<Models.Preferences> | null;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateName: (newName: string) => Promise<void>;
-  updateEmail: (newEmail: string, password: string) => Promise<void>;
-  updatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-  isLoading: boolean;
+  updateName: (name: string) => Promise<void>;
+  updateEmail: (email: string, password: string) => Promise<void>;
+  updatePassword: (newPassword: string, oldPassword: string) => Promise<void>;
+  requestPasswordRecovery: (email: string) => Promise<void>;
+  confirmPasswordRecovery: (userId: string, secret: string, password: string) => Promise<void>;
+  deactivateAccount: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
-export const AuthContext = createContext({} as IAuthContext);
+export const AuthContext = createContext<AuthContextValue>({} as AuthContextValue);
 
-const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export default function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const searchParams = useSearchParams();
+
+  const [isLoading, setIsLoading] = useState(true);
   const [loggedInUser, setLoggedInUser] = useState<Models.User<Models.Preferences> | null>(null);
+  const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const checkLoggedInUser = async () => {
-      try {
-        setIsLoading(true);
-        const userInfo = await account.get();
-        const session = await account.getSession('current');
-        const jwt = generateJWT(userInfo, session.$id);
-        setLoggedInUser(userInfo);
-        Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
-      } catch (error) {
-        setLoggedInUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const isAdmin = useMemo(() => loggedInUser?.labels?.includes('admin') ?? false, [loggedInUser]);
 
-    checkLoggedInUser();
+  /** Exchange a fresh Appwrite JWT for our httpOnly session cookie. */
+  const syncServerSession = useCallback(async () => {
+    const { jwt } = await account.createJWT();
+    const response = await fetch(SESSION_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jwt }),
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.message ?? 'Não foi possível iniciar a sessão.');
+    }
   }, []);
 
-  useEffect(() => {
-    const updateToken = async () => {
-      setIsLoading(true);
-      if (loggedInUser) {
-        const token = Cookies.get(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
-        if (token) {
-          if (isTokenExpired(token)) {
-            const session = await account.getSession('current');
-            const jwt = generateJWT(loggedInUser, session.$id);
-            Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
-          }
-        } else {
-          const session = await account.getSession('current');
-          const jwt = generateJWT(loggedInUser, session.$id);
-          Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
-        }
-      } else {
-        Cookies.remove(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
-      }
-      setIsLoading(false);
-    };
+  const clearServerSession = useCallback(async () => {
+    await fetch(SESSION_ENDPOINT, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+  }, []);
 
-    updateToken();
-  }, [pathname, loggedInUser, router]);
-
-  const login = async (email: string, password: string) => {
+  const refreshSession = useCallback(async () => {
     try {
-      setIsLoading(true);
-      if (!email || !password) {
-        throw new Error('Invalid parameters');
-      }
-
-      const session = await account.createEmailPasswordSession(email, password);
-      const userInfo = await account.get();
-      const jwt = generateJWT(userInfo, session.$id);
-      setLoggedInUser(userInfo);
-
-      Cookies.set(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET, jwt);
-      router.push('/home');
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const register = async (name: string, email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      await account.create(ID.unique(), email, password, name);
-      await login(email, password);
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      setIsLoading(true);
-      await account.deleteSessions();
+      const user = await account.get();
+      await syncServerSession();
+      setLoggedInUser(user);
+    } catch {
       setLoggedInUser(null);
-      Cookies.remove(LocalStorageKeysCache.AUTHENTICATION_SESSION_USER_TR_SHEET);
-      router.push('/login');
-    } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
+      await clearServerSession();
     }
-  };
+  }, [syncServerSession, clearServerSession]);
 
-  const updateName = async (newName: string) => {
+  /** Bootstrap on mount. */
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const user = await account.get();
+        await syncServerSession();
+        if (!cancelled) setLoggedInUser(user);
+      } catch {
+        if (!cancelled) setLoggedInUser(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [syncServerSession]);
+
+  /** Keep the cookie alive while the tab is open. */
+  useEffect(() => {
+    if (!loggedInUser) {
+      if (refreshTimer.current) clearInterval(refreshTimer.current);
+      refreshTimer.current = null;
+      return;
+    }
+
+    refreshTimer.current = setInterval(() => {
+      void refreshSession();
+    }, REFRESH_INTERVAL_MS);
+
+    return () => {
+      if (refreshTimer.current) clearInterval(refreshTimer.current);
+    };
+  }, [loggedInUser, refreshSession]);
+
+  /** Only same-origin absolute paths are honoured — blocks open redirects. */
+  const resolveRedirect = useCallback(
+    (user: Models.User<Models.Preferences>) => {
+      const requested = searchParams.get('redirectTo');
+      const isSafe = requested?.startsWith('/') && !requested.startsWith('//');
+      if (isSafe) return requested;
+      return user.labels?.includes('admin') ? '/home' : '/profile';
+    },
+    [searchParams]
+  );
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        // A stale session would make createEmailPasswordSession throw 409.
+        await account.deleteSession('current').catch(() => {});
+        await account.createEmailPasswordSession(email, password);
+        await syncServerSession();
+
+        const user = await account.get();
+        setLoggedInUser(user);
+        let redirectTo = resolveRedirect(user);
+        if (redirectTo) {
+          router.replace(redirectTo);
+        }
+      } catch (error) {
+        rethrowTranslated(error, 'Não foi possível entrar. Tente novamente.');
+      }
+    },
+    [router, resolveRedirect, syncServerSession]
+  );
+
+  const register = useCallback(
+    async (name: string, email: string, password: string) => {
+      try {
+        await account.create(ID.unique(), email, password, name);
+      } catch (error) {
+        rethrowTranslated(error, 'Não foi possível criar a conta.');
+      }
+      await login(email, password);
+    },
+    [login]
+  );
+
+  const logout = useCallback(async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      await account.updateName(newName);
-      const userInfo = await account.get();
-      setLoggedInUser(userInfo);
-    } catch (error) {
-      throw error;
+      await account.deleteSessions().catch(() => {});
+      await clearServerSession();
+      setLoggedInUser(null);
+      router.replace('/login');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router, clearServerSession]);
 
-  const updateEmail = async (newEmail: string, password: string) => {
+  const updateName = useCallback(
+    async (name: string) => {
+      try {
+        const user = await account.updateName(name);
+        setLoggedInUser(user);
+        await syncServerSession(); // name is embedded in the token
+      } catch (error) {
+        rethrowTranslated(error, 'Não foi possível alterar o nome.');
+      }
+    },
+    [syncServerSession]
+  );
+
+  const updateEmail = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const user = await account.updateEmail(email, password);
+        setLoggedInUser(user);
+        await syncServerSession();
+      } catch (error) {
+        rethrowTranslated(error, 'Não foi possível alterar o e-mail.');
+      }
+    },
+    [syncServerSession]
+  );
+
+  const updatePassword = useCallback(
+    async (newPassword: string, oldPassword: string) => {
+      try {
+        await account.updatePassword(newPassword, oldPassword);
+        await syncServerSession();
+      } catch (error) {
+        rethrowTranslated(error, 'Não foi possível alterar a senha.');
+      }
+    },
+    [syncServerSession]
+  );
+
+  /** Sends the reset link. Appwrite appends ?userId=…&secret=… to the URL. */
+  const requestPasswordRecovery = useCallback(async (email: string) => {
     try {
-      setIsLoading(true);
-      await account.updateEmail(newEmail, password);
-      const userInfo = await account.get();
-      setLoggedInUser(userInfo);
+      const redirectUrl = `${window.location.origin}/recover/confirm`;
+      await account.createRecovery(email, redirectUrl);
     } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
+      rethrowTranslated(error, 'Não foi possível enviar o e-mail de recuperação.');
     }
-  };
+  }, []);
 
-  const updatePassword = async (oldPassword: string, newPassword: string) => {
+  const confirmPasswordRecovery = useCallback(
+    async (userId: string, secret: string, password: string) => {
+      try {
+        await account.updateRecovery(userId, secret, password);
+      } catch (error) {
+        rethrowTranslated(error, 'Não foi possível redefinir a senha.');
+      }
+    },
+    []
+  );
+
+  /**
+   * Self-service deactivation. The client SDK cannot hard-delete an account
+   * (that needs a server API key), but updateStatus() blocks it, which revokes
+   * access immediately and is reversible by an admin.
+   */
+  const deactivateAccount = useCallback(async () => {
     try {
-      setIsLoading(true);
-      await account.updatePassword(newPassword, oldPassword);
-      const userInfo = await account.get();
-      setLoggedInUser(userInfo);
+      await account.updateStatus();
+      await clearServerSession();
+      setLoggedInUser(null);
+      router.replace('/login');
     } catch (error) {
-      throw error;
-    } finally {
-      setIsLoading(false);
+      rethrowTranslated(error, 'Não foi possível desativar a conta.');
     }
-  };
+  }, [router, clearServerSession]);
 
-  const providerValue = {
-    loggedInUser,
-    login,
-    register,
-    logout,
-    updateName,
-    updateEmail,
-    updatePassword,
-    isLoading,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      isLoading,
+      loggedInUser,
+      isAdmin,
+      login,
+      register,
+      logout,
+      updateName,
+      updateEmail,
+      updatePassword,
+      requestPasswordRecovery,
+      confirmPasswordRecovery,
+      deactivateAccount,
+      refreshSession,
+    }),
+    [
+      isLoading,
+      loggedInUser,
+      isAdmin,
+      login,
+      register,
+      logout,
+      updateName,
+      updateEmail,
+      updatePassword,
+      requestPasswordRecovery,
+      confirmPasswordRecovery,
+      deactivateAccount,
+      refreshSession,
+    ]
+  );
 
-  return <AuthContext.Provider value={providerValue}>{children}</AuthContext.Provider>;
-};
-
-export default AuthProvider;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

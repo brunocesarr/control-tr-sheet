@@ -1,13 +1,13 @@
-const Navbar = ({ children }: { children: React.ReactNode }) => {
+interface INavbarProps {
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}
+
+export default function Navbar({ children, actions }: INavbarProps) {
   return (
-    <nav className="bg-gray-900">
-      <div className="container flex items-center justify-center">
-        <div className="flex min-h-[48px] items-center py-4">
-          <span className="whitespace-nowrap text-xl font-medium text-white">{children}</span>
-        </div>
-      </div>
+    <nav className="flex items-center justify-between gap-4 bg-slate-900 px-4 py-4 sm:px-6">
+      <span className="truncate whitespace-nowrap text-xl font-medium text-white">{children}</span>
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
     </nav>
   );
-};
-
-export default Navbar;
+}
