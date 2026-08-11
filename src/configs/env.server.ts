@@ -87,6 +87,42 @@ export const serverEnv = {
     const mode = process.env.GOOGLE_SHEET_STATUS_WRITE_MODE?.trim().toLowerCase();
     return mode === 'boolean' || mode === 'text' ? mode : 'auto';
   },
+
+  /**
+   * Shared secret for scheduled endpoints under /api/v1/cron/*.
+   *
+   * Vercel Cron sends this as `Authorization: Bearer <value>` automatically
+   * once CRON_SECRET is set as a project env var. The GitHub Actions workflow
+   * sends the same header from a repository secret.
+   *
+   * Minimum 16 characters — this is the only thing standing between a public
+   * URL and unlimited invocations of your Appwrite rate limit.
+   */
+  get cronSecret(): string {
+    const secret = required('CRON_SECRET', 'generate one with `openssl rand -hex 32`');
+    if (secret.length < 16) {
+      throw new MissingEnvError(
+        'CRON_SECRET',
+        `must be at least 16 characters (got ${secret.length})`
+      );
+    }
+    return secret;
+  },
+
+  /**
+   * Appwrite server API key, scope `health.read` only.
+   *
+   * OPTIONAL — omitting it leaves /api/v1/health working correctly, but the
+   * keep-alive can no longer prove it reset the inactivity timer, because
+   * Appwrite's Health API answers 401 without a key and a rejected request may
+   * not count as activity.
+   *
+   * Never prefix with NEXT_PUBLIC_: this key is server-only.
+   */
+  get appwriteApiKey(): string | null {
+    const key = process.env.APPWRITE_API_KEY?.trim();
+    return key && key.length > 0 ? key : null;
+  },
 } as const;
 
 /**
@@ -95,6 +131,8 @@ export const serverEnv = {
  */
 export function assertServerEnv(): void {
   void serverEnv.jwtSecret;
+  void serverEnv.cronSecret;
+  void serverEnv.appwriteApiKey;
   void serverEnv.googleSheetId;
   void serverEnv.googleServiceAccountEmail;
   void serverEnv.googlePrivateKey;
