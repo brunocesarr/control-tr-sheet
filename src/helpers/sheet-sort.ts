@@ -1,5 +1,5 @@
-import type { SheetRowData } from '@/interfaces/tr-sheet';
 import { normaliseText, onlyDigits } from '@/helpers/utils';
+import type { SheetRowData } from '@/interfaces/tr-sheet';
 
 export type SortKey = 'status' | 'name' | 'cpf' | 'cib' | 'imovelRural';
 export type SortDirection = 'asc' | 'desc';
@@ -16,31 +16,50 @@ export const DEFAULT_SORT: SortState = { key: 'status', direction: 'asc' };
  * pt-BR collator handles accents correctly ("Álvaro" before "Bruno") and is
  * created once — constructing an Intl.Collator per comparison is a well-known
  * sort bottleneck on large lists.
+ *
+ * `numeric: true` also makes digit strings compare by value, which is what the
+ * CPF column needs.
  */
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
-function compareByKey(a: SheetRowData, b: SheetRowData, key: SortKey): number {
+/** Comparable string for a key. An empty result means "no value". */
+function toComparable(row: SheetRowData, key: SortKey): string {
   switch (key) {
     case 'status':
-      // false (pending) sorts before true (delivered) in ascending order.
-      return Number(a.hasDone) - Number(b.hasDone);
+      // '0' pending, '1' delivered — so ascending puts pending first.
+      return row.hasDone ? '1' : '0';
     case 'cpf':
-      // Numeric comparison on digits only, so punctuation never affects order.
-      return onlyDigits(a.cpf).localeCompare(onlyDigits(b.cpf), undefined, { numeric: true });
+      // Digits only, so punctuation never affects order.
+      return onlyDigits(row.cpf);
     case 'name':
     case 'cib':
-    case 'imovelRural': {
-      const left = normaliseText(a[key]);
-      const right = normaliseText(b[key]);
-      // Empty values always sink to the bottom regardless of direction —
-      // "—" rows at the top of a sorted column is never what a user wants.
-      if (!left && right) return 1;
-      if (left && !right) return -1;
-      return collator.compare(left, right);
+    case 'imovelRural':
+      return normaliseText(row[key]);
+    default: {
+      // Compile-time exhaustiveness guard: adding a SortKey without handling it
+      // here becomes a type error rather than a silent '' comparison.
+      const _exhaustive: never = key;
+      return _exhaustive;
     }
-    default:
-      return 0;
   }
+}
+
+/**
+ * 1 when the row has no value for this key, else 0.
+ *
+ * Ranked SEPARATELY from the value comparison and deliberately NOT multiplied
+ * by the direction factor.
+ *
+ * This is the bug the test caught: the previous version folded the ±1 sink into
+ * compareByKey's return value, which then got multiplied by -1 in descending
+ * order. The sink inverted and a column of "—" rows floated to the top, which
+ * is never useful.
+ *
+ * `status` is exempt — hasDone is a boolean, so it has no empty state.
+ */
+function emptinessRank(row: SheetRowData, key: SortKey): number {
+  if (key === 'status') return 0;
+  return toComparable(row, key) === '' ? 1 : 0;
 }
 
 /** Returns a new array; never mutates the React Query cache. */
@@ -48,9 +67,17 @@ export function sortRows(rows: readonly SheetRowData[], sort: SortState): SheetR
   const factor = sort.direction === 'asc' ? 1 : -1;
 
   return [...rows].sort((a, b) => {
-    const primary = compareByKey(a, b, sort.key) * factor;
+    // 1. Blanks last — direction-independent, so it must be applied before
+    //    `factor` is ever involved.
+    const emptiness = emptinessRank(a, sort.key) - emptinessRank(b, sort.key);
+    if (emptiness !== 0) return emptiness;
+
+    // 2. Value comparison — the only direction-sensitive step.
+    const primary = collator.compare(toComparable(a, sort.key), toComparable(b, sort.key)) * factor;
     if (primary !== 0) return primary;
-    // Stable secondary key so equal rows keep a predictable order.
+
+    // 3. Tie-break, always ascending by name, so rows that are equal on the
+    //    sorted column keep a predictable order in both directions.
     return collator.compare(normaliseText(a.name), normaliseText(b.name));
   });
 }
