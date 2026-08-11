@@ -78,7 +78,7 @@ export default function Sidebar() {
         type="button"
         onClick={() => setMobileMenu(true)}
         aria-label="Abrir menu"
-        className="fixed left-3 top-3 z-40 rounded-md bg-slate-900 p-2 text-white sm:hidden">
+        className="fixed top-3 left-3 z-40 rounded-md bg-slate-900 p-2 text-white sm:hidden">
         <MdMenu aria-hidden />
       </button>
 
@@ -92,7 +92,7 @@ export default function Sidebar() {
             {loggedInUser?.email}
           </p>
           {isAdmin && (
-            <span className="mt-2 inline-block rounded bg-emerald-600/20 px-2 py-0.5 text-[10px] font-medium uppercase text-emerald-400">
+            <span className="mt-2 inline-block rounded bg-emerald-600/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400 uppercase">
               Admin
             </span>
           )}
@@ -113,7 +113,7 @@ export default function Sidebar() {
               type="button"
               onClick={() => setMobileMenu(false)}
               aria-label="Fechar menu"
-              className="absolute right-3 top-3 text-slate-400">
+              className="absolute top-3 right-3 text-slate-400">
               <MdClose aria-hidden />
             </button>
             <div className="border-b border-slate-700 p-4 pr-10">

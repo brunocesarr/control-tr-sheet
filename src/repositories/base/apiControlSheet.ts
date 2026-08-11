@@ -2,10 +2,13 @@ import axios, { type AxiosInstance } from 'axios';
 
 import { clientEnv } from '@/configs/env.client';
 
+/** Dispatched on a 401 so a React component can route via the App Router. */
+export const SESSION_EXPIRED_EVENT = 'control-tr-sheet:session-expired';
+
 /**
  * On the client a relative baseURL is correct (same origin, cookies attached).
- * On the server an absolute URL is mandatory, so fall back to the env var
- * and then to Vercel's injected host.
+ * On the server an absolute URL is mandatory, so fall back to the env var and
+ * then to Vercel's injected host.
  */
 function resolveBaseUrl(): string {
   if (typeof window !== 'undefined') return '';
@@ -21,7 +24,7 @@ export const apiManagerSheet: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 });
 
-/** Normalises Axios errors into plain Errors with the server's message. */
+/** Normalises Axios errors into plain Errors carrying the server's message. */
 apiManagerSheet.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,8 +32,16 @@ apiManagerSheet.interceptors.response.use(
     const message =
       error?.response?.data?.message ?? error?.message ?? 'Erro inesperado na requisição.';
 
+    /**
+     * Previously this called `window.location.assign(...)`, which forces a full
+     * document reload and discards the React tree — flagged by Next 16's
+     * @next/next/no-location-assign-relative-destination.
+     *
+     * Navigation is a UI concern, so the interceptor only announces the
+     * expiry. SessionExpiryListener performs a client-side router.replace.
+     */
     if (status === 401 && typeof window !== 'undefined') {
-      window.location.assign(`/login?redirectTo=${encodeURIComponent(window.location.pathname)}`);
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
     }
 
     return Promise.reject(Object.assign(new Error(message), { status }));

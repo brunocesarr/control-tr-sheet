@@ -147,7 +147,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
         const user = await account.get();
         setLoggedInUser(user);
-        let redirectTo = resolveRedirect(user);
+        const redirectTo = resolveRedirect(user);
         if (redirectTo) {
           router.replace(redirectTo);
         }

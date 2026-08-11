@@ -45,8 +45,20 @@ export function translateAuthError(
 
   const candidate = error as AppwriteLikeError;
 
-  if (candidate.type && BY_TYPE[candidate.type]) return BY_TYPE[candidate.type];
-  if (typeof candidate.code === 'number' && BY_CODE[candidate.code]) return BY_CODE[candidate.code];
+  // Bind each lookup to a local before testing it. Under
+  // noUncheckedIndexedAccess a Record<string, string> access is
+  // `string | undefined`, and TypeScript does not narrow two separate index
+  // expressions as one — so `if (BY_TYPE[k]) return BY_TYPE[k]` fails to
+  // compile. Binding also avoids doing the lookup twice.
+  if (candidate.type) {
+    const byType = BY_TYPE[candidate.type];
+    if (byType) return byType;
+  }
+
+  if (typeof candidate.code === 'number') {
+    const byCode = BY_CODE[candidate.code];
+    if (byCode) return byCode;
+  }
 
   // Network failure surfaces as a plain TypeError from fetch.
   if (error instanceof TypeError) {

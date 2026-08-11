@@ -1,18 +1,28 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useDeferredValue,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { toast } from 'react-toastify';
 
-import { LocalStorageKeysCache } from '@/configs/local-storage-keys';
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
+  usePersistedPageSize,
+} from '@/hooks/usePersistedPageSize';
 import { normaliseText, onlyAlphanumeric, onlyDigits } from '@/helpers/utils';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
 import { getManagerTable, setAllRowsStatus, setRowStatus } from '@/services/sheet.service';
-import localStorageService from '@/services/localStorage.service';
 
 export type StatusFilter = 'all' | 'done' | 'pending';
 
-export const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100] as const;
+export { PAGE_SIZE_OPTIONS };
 
 export interface SheetFilter {
   keyword: string;
@@ -20,16 +30,15 @@ export interface SheetFilter {
   pageSize: number;
 }
 
-const DEFAULT_FILTER: SheetFilter = { keyword: '', status: 'all', pageSize: 15 };
-
 export const SHEET_QUERY_KEY = ['manager-sheet'] as const;
 
 export interface SheetContextValue {
   isLoading: boolean;
   isFetching: boolean;
   isMutating: boolean;
+  /** True while the keyword input is ahead of the rendered results. */
+  isFiltering: boolean;
   error: Error | null;
-  /** Rows after filtering — what the table renders. */
   response: SheetRowData[];
   totalRows: number;
   filter: SheetFilter;
@@ -49,32 +58,41 @@ export const SheetContext = createContext<SheetContextValue>({} as SheetContextV
 export default function SheetProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
-  // pageSize now persists across visits (priority #6).
-  const [filter, setFilterState] = useState<SheetFilter>(DEFAULT_FILTER);
-  const [page, setPage] = useState(1);
+  // Ephemeral filter state. pageSize lives in localStorage via its own hook,
+  // which removes the mount-time useEffect that used to hydrate it.
+  const [keyword, setKeyword] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('all');
+  const [pageSize, setPageSize] = usePersistedPageSize();
+  const [requestedPage, setRequestedPage] = useState(1);
 
-  useEffect(() => {
-    const saved = localStorageService.getItem<Partial<SheetFilter>>(
-      LocalStorageKeysCache.SHEET_FILTER_PREFERENCES
-    );
-    if (saved?.pageSize && PAGE_SIZE_OPTIONS.includes(saved.pageSize as never)) {
-      setFilterState((current) => ({ ...current, pageSize: saved.pageSize! }));
-    }
-  }, []);
+  /**
+   * Replaces the previous debounce (useEffect + setTimeout + a `keywordDraft`
+   * mirror). The input now updates `keyword` immediately so typing stays
+   * responsive, while React de-prioritises re-filtering the table. Two effects
+   * and a timer deleted.
+   */
+  const deferredKeyword = useDeferredValue(keyword);
+  const isFiltering = keyword !== deferredKeyword;
 
-  const setFilter = useCallback((next: SheetFilter) => {
-    setFilterState(next);
-    setPage(1); // any filter change invalidates the current page
-    localStorageService.setItem(
-      LocalStorageKeysCache.SHEET_FILTER_PREFERENCES,
-      { pageSize: next.pageSize },
-      null
-    );
-  }, []);
+  const filter = useMemo<SheetFilter>(
+    () => ({ keyword, status, pageSize }),
+    [keyword, status, pageSize]
+  );
+
+  const setFilter = useCallback(
+    (next: SheetFilter) => {
+      setKeyword(next.keyword);
+      setStatus(next.status);
+      if (next.pageSize !== pageSize) setPageSize(next.pageSize);
+      setRequestedPage(1); // any filter change invalidates the current page
+    },
+    [pageSize, setPageSize]
+  );
 
   const resetFilter = useCallback(() => {
-    setFilterState((current) => ({ ...DEFAULT_FILTER, pageSize: current.pageSize }));
-    setPage(1);
+    setKeyword('');
+    setStatus('all');
+    setRequestedPage(1);
   }, []);
 
   const {
@@ -92,40 +110,50 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
   });
 
   const filteredValues = useMemo(() => {
-    const keyword = normaliseText(filter.keyword);
-    const keywordDigits = onlyDigits(filter.keyword);
-    const keywordAlnum = onlyAlphanumeric(filter.keyword).toLowerCase();
+    const needle = normaliseText(deferredKeyword);
+    const needleDigits = onlyDigits(deferredKeyword);
+    const needleAlnum = onlyAlphanumeric(deferredKeyword).toLowerCase();
 
     return data.filter((value) => {
-      if (filter.status === 'done' && !value.hasDone) return false;
-      if (filter.status === 'pending' && value.hasDone) return false;
-      if (!keyword) return true;
+      if (status === 'done' && !value.hasDone) return false;
+      if (status === 'pending' && value.hasDone) return false;
+      if (!needle) return true;
 
-      const matchesName = normaliseText(value.name).includes(keyword);
-      const matchesCpf = keywordDigits.length > 0 && onlyDigits(value.cpf).includes(keywordDigits);
+      const matchesName = normaliseText(value.name).includes(needle);
+      const matchesCpf = needleDigits.length > 0 && onlyDigits(value.cpf).includes(needleDigits);
       const matchesCib =
-        keywordAlnum.length > 0 && onlyAlphanumeric(value.cib).toLowerCase().includes(keywordAlnum);
-      const matchesProperty = normaliseText(value.imovelRural).includes(keyword);
-      const matchesObservations = normaliseText(value.observations).includes(keyword);
+        needleAlnum.length > 0 && onlyAlphanumeric(value.cib).toLowerCase().includes(needleAlnum);
+      const matchesProperty = normaliseText(value.imovelRural).includes(needle);
+      const matchesObservations = normaliseText(value.observations).includes(needle);
 
       return matchesName || matchesCpf || matchesCib || matchesProperty || matchesObservations;
     });
-  }, [data, filter.keyword, filter.status]);
+  }, [data, deferredKeyword, status]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredValues.length / filter.pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredValues.length / pageSize));
 
-  // Guard against landing on a page that no longer exists.
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  /**
+   * Derived, not stored. The old version clamped inside a useEffect, which
+   * meant one render with an out-of-range page followed by a corrective
+   * re-render. Clamping here makes the invalid state unrepresentable.
+   */
+  const page = Math.min(requestedPage, totalPages);
+
+  const setPage = useCallback((next: number) => {
+    setRequestedPage(Math.max(1, next));
+  }, []);
 
   const paginatedRows = useMemo(() => {
-    const start = (page - 1) * filter.pageSize;
-    return filteredValues.slice(start, start + filter.pageSize);
-  }, [filteredValues, page, filter.pageSize]);
+    const start = (page - 1) * pageSize;
+    return filteredValues.slice(start, start + pageSize);
+  }, [filteredValues, page, pageSize]);
 
-  /** Optimistic single-row toggle with rollback. */
-  const toggleMutation = useMutation({
+  /**
+   * Destructuring is required by @tanstack/query/no-unstable-deps: the object
+   * returned by useMutation is a new reference every render, so depending on it
+   * defeats useCallback memoisation. `mutateAsync` and `isPending` are stable.
+   */
+  const { mutateAsync: toggleStatus, isPending: isTogglePending } = useMutation({
     mutationFn: ({ row, hasDone }: { row: SheetRowData; hasDone: boolean }) =>
       setRowStatus(row, hasDone),
     onMutate: async ({ row, hasDone }) => {
@@ -135,7 +163,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData<SheetRowData[]>(SHEET_QUERY_KEY, (current = []) =>
         current.map((item) =>
           item.cellRange === row.cellRange
-            ? { ...item, hasDone, status: hasDone ? 'Entregue' : 'Não entregue' }
+            ? { ...item, hasDone, status: hasDone ? 'ENTREGUE' : 'NÃO ENTREGUE' }
             : item
         )
       );
@@ -150,7 +178,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: SHEET_QUERY_KEY }),
   });
 
-  const bulkMutation = useMutation({
+  const { mutateAsync: markAllPending, isPending: isBulkPending } = useMutation({
     mutationFn: () => setAllRowsStatus(false),
     onSuccess: ({ updated, skipped }) => {
       toast.success(
@@ -166,20 +194,21 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
 
   const updateStatus = useCallback(
     async (row: SheetRowData) => {
-      await toggleMutation.mutateAsync({ row, hasDone: !row.hasDone });
+      await toggleStatus({ row, hasDone: !row.hasDone });
     },
-    [toggleMutation]
+    [toggleStatus]
   );
 
   const updateAllToNoDeliveryStatus = useCallback(async () => {
-    await bulkMutation.mutateAsync();
-  }, [bulkMutation]);
+    await markAllPending();
+  }, [markAllPending]);
 
   const value = useMemo<SheetContextValue>(
     () => ({
       isLoading,
       isFetching,
-      isMutating: toggleMutation.isPending || bulkMutation.isPending,
+      isMutating: isTogglePending || isBulkPending,
+      isFiltering,
       error: error ?? null,
       response: filteredValues,
       totalRows: data.length,
@@ -197,8 +226,9 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
     [
       isLoading,
       isFetching,
-      toggleMutation.isPending,
-      bulkMutation.isPending,
+      isTogglePending,
+      isBulkPending,
+      isFiltering,
       error,
       filteredValues,
       data.length,
@@ -206,6 +236,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       setFilter,
       resetFilter,
       page,
+      setPage,
       totalPages,
       paginatedRows,
       updateStatus,
@@ -216,3 +247,5 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
 
   return <SheetContext.Provider value={value}>{children}</SheetContext.Provider>;
 }
+
+export { DEFAULT_PAGE_SIZE };

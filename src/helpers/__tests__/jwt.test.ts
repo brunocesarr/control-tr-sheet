@@ -7,6 +7,26 @@ async function loadModule() {
   return import('@/helpers/jwt');
 }
 
+/**
+ * Splits a compact JWS into its three definite parts.
+ *
+ * Destructuring `token.split('.')` yields `string | undefined` under
+ * noUncheckedIndexedAccess, which Buffer.from rejects. Asserting the shape
+ * here is better than casting: a malformed token now fails with a clear
+ * message instead of a confusing downstream error.
+ */
+function splitJwt(token: string): { header: string; payload: string; signature: string } {
+  const parts = token.split('.');
+  expect(parts).toHaveLength(3);
+
+  const [header, payload, signature] = parts;
+  if (!header || !payload || !signature) {
+    throw new Error(`Malformed JWT: "${token}"`);
+  }
+
+  return { header, payload, signature };
+}
+
 describe('session token', () => {
   beforeEach(() => {
     vi.stubEnv('JWT_SECRET', SECRET);
@@ -35,7 +55,8 @@ describe('session token', () => {
       isAdmin: false,
     });
 
-    const [header, payload, signature] = token.split('.');
+    const { header, payload, signature } = splitJwt(token);
+
     const forged = JSON.parse(Buffer.from(payload, 'base64url').toString());
     forged.isAdmin = true; // the exact attack the old jwt-decode path allowed
     const forgedPayload = Buffer.from(JSON.stringify(forged)).toString('base64url');

@@ -44,7 +44,7 @@ export default function AuthShell({ eyebrow, title, subtitle, children, footer }
             </Link>
 
             {eyebrow && (
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-600">
+              <p className="mb-1 text-xs font-semibold tracking-wider text-emerald-600 uppercase">
                 {eyebrow}
               </p>
             )}
@@ -75,7 +75,7 @@ export default function AuthShell({ eyebrow, title, subtitle, children, footer }
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900/85 to-emerald-950/70" />
 
         <div className="relative flex h-full flex-col justify-end p-12">
-          <h2 id="brand-title" className="max-w-sm text-3xl font-semibold leading-tight text-white">
+          <h2 id="brand-title" className="max-w-sm text-3xl leading-tight font-semibold text-white">
             Toda a gestão do <span className="text-emerald-400">ITR</span> em um só lugar.
           </h2>
           <p

@@ -1,1 +1,41 @@
 @import 'tailwindcss';
+
+/**
+ * Tailwind v4 CSS-first configuration, replacing the deleted
+ * tailwind.config.ts. That file only extended two colours; both are
+ * reproduced below as @theme tokens.
+ */
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Brand accents shared by the auth screens and the dashboard. */
+  --color-brand-surface: oklch(20.8% 0.042 265.755); /* ≈ slate-900 */
+  --color-brand-accent: oklch(69.6% 0.17 162.48); /* ≈ emerald-500 */
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Next 16 no longer forces scroll-behavior: smooth on SPA navigation.
+   Opt in explicitly, but respect reduced-motion preferences. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

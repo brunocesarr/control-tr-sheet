@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import Modal from '@/components/Modal';
 import { validateEmail } from '@/helpers/validators';
@@ -100,13 +100,24 @@ export function NewEmailModal({ open, setOpen, confirmAction }: NewEmailModalPro
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Never leave credentials sitting in state after the modal closes.
-  useEffect(() => {
-    if (!open) {
-      setNewEmail('');
-      setPassword('');
-    }
-  }, [open]);
+  /**
+   * Credentials are cleared in the event handlers that close the modal, not in
+   * a `useEffect` watching `open`.
+   *
+   * The old effect fired a synchronous setState during the commit phase on
+   * every close, triggering a cascading render (react-hooks/set-state-in-effect).
+   * Both close paths — the Modal's onClose and a successful submit — funnel
+   * through here instead, so the password never lingers in state.
+   */
+  const resetFields = useCallback(() => {
+    setNewEmail('');
+    setPassword('');
+  }, []);
+
+  const handleClose = useCallback(() => {
+    resetFields();
+    setOpen(false);
+  }, [resetFields, setOpen]);
 
   const isValidInputs = validateEmail(newEmail) && password.length > 0;
 
@@ -114,14 +125,14 @@ export function NewEmailModal({ open, setOpen, confirmAction }: NewEmailModalPro
     setIsSubmitting(true);
     try {
       await confirmAction(newEmail, password);
-      setOpen(false);
+      handleClose();
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Modal open={open} onClose={() => setOpen(false)}>
+    <Modal open={open} onClose={handleClose}>
       <div className="w-full max-w-sm">
         <h3 className="text-lg font-semibold text-gray-900">Alterar e-mail</h3>
         <p className="mt-1 text-sm text-gray-600">

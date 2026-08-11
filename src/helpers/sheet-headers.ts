@@ -83,13 +83,19 @@ export class HeaderResolver {
       const key = normaliseHeader(alias);
       if (!key) continue;
 
+      const keyWords = key.split(' ');
+
       for (const [candidate, match] of this.byNormalised) {
         const words = candidate.split(' ');
-        const keyWords = key.split(' ');
-        const containsSequence = words.some((_, start) =>
-          keyWords.every((word, offset) => words[start + offset] === word)
-        );
-        if (containsSequence) return match;
+
+        // Bounded loop: `start` can never push `start + offset` past the end,
+        // so no out-of-range read is possible. The previous version relied on
+        // an `undefined === string` comparison, which happened to work but
+        // obscured the actual invariant.
+        for (let start = 0; start + keyWords.length <= words.length; start += 1) {
+          const isSequence = keyWords.every((word, offset) => words[start + offset] === word);
+          if (isSequence) return match;
+        }
       }
     }
 

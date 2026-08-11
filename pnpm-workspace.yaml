@@ -1,0 +1,21 @@
+# ── pnpm 11 settings ────────────────────────────────────────────────────────
+# pnpm 11 no longer reads the `pnpm` field from package.json. Every setting
+# that used to live there now belongs here — even in a single-package repo.
+#
+# `packages` is intentionally omitted: with no `packages` key only the root
+# package is in the workspace, which is exactly what this project needs.
+
+# Renamed from `onlyBuiltDependencies` (pnpm 10) to `allowBuilds` (pnpm 11),
+# and changed shape from an array to a map of name → boolean.
+#
+# pnpm blocks dependency build scripts by default. These three MUST build or
+# the project breaks in ways that do not surface as install errors:
+#   • @tailwindcss/oxide — Tailwind v4's Rust engine. Blocked ⇒ empty CSS.
+#   • esbuild            — Vitest's transform layer. Blocked ⇒ tests cannot run.
+#   • unrs-resolver      — import resolver used by eslint-config-next.
+#   • sharp              — Next.js image optimisation on some platforms.
+allowBuilds:
+  '@tailwindcss/oxide': true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

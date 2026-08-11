@@ -1,34 +1,28 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# ── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
 
-# testing
-/coverage
+# ── Next.js 16 ──────────────────────────────────────────────────────────────
+.next/
+next-env.d.ts
+.turbo/
 
-# next.js
-/.next/
-/out/
+# ── Tooling ─────────────────────────────────────────────────────────────────
+coverage/
+.eslintcache
+.vercel
 
-# production
-/build
-
-# misc
-.DS_Store
+# ── Secrets ─────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env*.local
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# ── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -39,3 +33,34 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ── Yarn 4 (Berry) ──────────────────────────────────────────────────────────
+# The release binary IS committed so CI needs no bootstrap step.
+.yarn/*
+!.yarn/releases
+!.yarn/patches
+!.yarn/plugins
+.pnp.*
+.yarn/install-state.gz
+
+# ── Next.js 16 ──────────────────────────────────────────────────────────────
+.next/
+next-env.d.ts
+.turbo/
+
+# ── Tooling ─────────────────────────────────────────────────────────────────
+coverage/
+.eslintcache
+.vercel
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env*.local
+*.pem
+
+# ── Credentials ─────────────────────────────────────────────────────────────
+# The project .npmrc IS committed (it holds no secrets — see its header).
+# These variants never are:
+.npmrc.local
+.npmrc.*.local

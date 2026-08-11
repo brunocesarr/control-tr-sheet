@@ -138,14 +138,20 @@ export async function updateAllStatus(cellRanges: string[], hasDone: boolean): P
 /**
  * Last line of defence: even though the route handler whitelists the A1 syntax,
  * refuse to write outside the resolved STATUS column. This is precisely the
- * mistake that would have clobbered 'IMOVEL RURAL'.
+ * mistake that would have clobbered 'IMOVEL RURAL' when the column letter was
+ * hardcoded to 'F'.
  */
 function assertRangeTargetsStatusColumn(cellRange: string, statusHeader: HeaderMatch): void {
   const match = /^([A-Z]{1,3})([1-9]\d{0,6})$/.exec(cellRange);
-  if (!match) {
+  // RegExpExecArray indexing is `string | undefined` under
+  // noUncheckedIndexedAccess — bind the group before comparing it.
+  const column = match?.[1];
+
+  if (!column) {
     throw new Error(`Referência A1 inválida: "${cellRange}".`);
   }
-  if (match[1] !== statusHeader.letter) {
+
+  if (column !== statusHeader.letter) {
     throw new Error(
       `Escrita bloqueada: "${cellRange}" não pertence à coluna de STATUS ` +
         `("${statusHeader.letter}", cabeçalho "${statusHeader.header}").`

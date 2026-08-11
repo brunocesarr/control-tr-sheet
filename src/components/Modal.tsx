@@ -46,7 +46,7 @@ export default function Modal({ open, onClose, children }: IModalProps) {
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="absolute right-3 top-3 rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
+          className="absolute top-3 right-3 rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
           <MdClose aria-hidden />
         </button>
         {children}

@@ -8,14 +8,34 @@ interface PasswordChecklistProps {
   password: string;
 }
 
-const STRENGTH_STYLES = [
-  { width: 'w-0', bar: 'bg-transparent', label: '', text: '' },
+interface StrengthStyle {
+  width: string;
+  bar: string;
+  label: string;
+  text: string;
+}
+
+/**
+ * Named fallback so the lookup below always yields a definite StrengthStyle.
+ * Under noUncheckedIndexedAccess a bare STRENGTH_STYLES[n] is
+ * `StrengthStyle | undefined`, and reading `.width` off it is a type error —
+ * which is a real latent crash if describePasswordRules ever gains a 6th rule.
+ */
+const EMPTY_STRENGTH: StrengthStyle = {
+  width: 'w-0',
+  bar: 'bg-transparent',
+  label: '',
+  text: '',
+};
+
+const STRENGTH_STYLES: readonly StrengthStyle[] = [
+  EMPTY_STRENGTH,
   { width: 'w-1/5', bar: 'bg-red-500', label: 'Muito fraca', text: 'text-red-600' },
   { width: 'w-2/5', bar: 'bg-orange-500', label: 'Fraca', text: 'text-orange-600' },
   { width: 'w-3/5', bar: 'bg-amber-500', label: 'Razoável', text: 'text-amber-600' },
   { width: 'w-4/5', bar: 'bg-lime-500', label: 'Boa', text: 'text-lime-600' },
   { width: 'w-full', bar: 'bg-emerald-500', label: 'Forte', text: 'text-emerald-600' },
-] as const;
+];
 
 /** Meter + checklist driven by the same rules the validator enforces. */
 export default function PasswordChecklist({ password }: PasswordChecklistProps) {
@@ -23,7 +43,10 @@ export default function PasswordChecklist({ password }: PasswordChecklistProps) 
 
   const rules = describePasswordRules(password);
   const satisfied = rules.filter((rule) => rule.satisfied).length;
-  const strength = STRENGTH_STYLES[satisfied];
+
+  // Clamp, then coalesce: safe even if the rule count outgrows the style list.
+  const index = Math.min(satisfied, STRENGTH_STYLES.length - 1);
+  const strength = STRENGTH_STYLES.at(index) ?? EMPTY_STRENGTH;
 
   return (
     <div className="flex flex-col gap-2 rounded-lg bg-slate-50 p-3">

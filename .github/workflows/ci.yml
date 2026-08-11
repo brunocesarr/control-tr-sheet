@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Next 16 requires >= 20.9; import.meta.dirname requires >= 20.11.
+  # 22 LTS satisfies both.
+  NODE_VERSION: '22'
+
 jobs:
   quality:
     name: Lint · Types · Tests · Build
@@ -19,32 +24,52 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Reads the pnpm version from package.json#packageManager.
+      - uses: pnpm/action-setup@v4
+
+      # Order matters: pnpm must exist before setup-node can use `cache: pnpm`.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      # pnpm blocks dependency build scripts by default. If `allowBuilds` in
+      # pnpm-workspace.yaml is wrong, install still SUCCEEDS but Tailwind emits
+      # near-empty CSS and Vitest cannot start. Fail loudly here instead.
+      - name: Assert native binaries were built
+        run: |
+          set -e
+          node -e "require.resolve('@tailwindcss/oxide')" \
+            && echo "✅ @tailwindcss/oxide resolved"
+          pnpm exec esbuild --version > /dev/null \
+            && echo "✅ esbuild binary present"
+          if pnpm install --frozen-lockfile 2>&1 | grep -q "Ignored build scripts"; then
+            echo "::error::Build scripts were ignored — check allowBuilds in pnpm-workspace.yaml"
+            exit 1
+          fi
+          echo "✅ No ignored build scripts"
 
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Check formatting
-        run: npm run format
+        run: pnpm run format
 
       - name: Type check
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Unit tests
-        run: npm run test:run
+        run: pnpm run test:run
         env:
-          JWT_SECRET: ${{ secrets.CI_JWT_SECRET || 'ci-only-secret-value-at-least-32-chars-long' }}
+          JWT_SECRET: ci-only-secret-value-at-least-32-chars-long
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
         env:
-          # Build-time placeholders — no real credentials needed to compile.
+          # Placeholders only — no real credentials needed to compile.
           NEXT_PUBLIC_APP_WRITE_PROJECT_ID: ci-placeholder
           NEXT_PUBLIC_URL_AMBIENTE_SERVER: http://localhost:3000
           NEXT_PUBLIC_AMBIENTE_TR_MANAGER_WEB_APP: ci
@@ -54,15 +79,26 @@ jobs:
           GOOGLE_SERVICE_ACCOUNT_EMAIL: ci@placeholder.iam.gserviceaccount.com
           GOOGLE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nci\n-----END PRIVATE KEY-----\n"
 
+      - name: Assert no server secret in the client bundle
+        # Regression guard for the next.config.ts `env` leak. A known-value
+        # secret is used above precisely so this grep is meaningful.
+        run: |
+          if grep -rl "ci-only-secret-value" .next/static 2>/dev/null; then
+            echo "::error::JWT_SECRET leaked into the client bundle."
+            exit 1
+          fi
+          echo "✅ No server secret in .next/static"
+
   security:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm audit --audit-level=high
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high
         continue-on-error: true

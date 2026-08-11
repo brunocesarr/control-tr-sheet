@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import { MdOutlineFilterAltOff, MdRefresh } from 'react-icons/md';
 
 import { ConfirmModal } from '@/components/CustomModals';
@@ -20,26 +20,23 @@ export default function FilterSection() {
     updateAllToNoDeliveryStatus,
     refetch,
     isFetching,
+    isFiltering,
     isMutating,
     response,
     totalRows,
   } = useContext(SheetContext);
 
-  const [keywordDraft, setKeywordDraft] = useState(filter.keyword);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
 
-  // Debounce the keyword so we don't re-filter on every keystroke.
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (keywordDraft !== filter.keyword) setFilter({ ...filter, keyword: keywordDraft });
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [keywordDraft, filter, setFilter]);
-
-  useEffect(() => {
-    setKeywordDraft(filter.keyword);
-  }, [filter.keyword]);
-
+  /**
+   * `filter.keyword` is now the single source of truth for this input.
+   *
+   * The previous version kept a `keywordDraft` mirror plus two effects — one
+   * debouncing writes, one syncing back when the filter was cleared elsewhere.
+   * Both tripped react-hooks/set-state-in-effect. The context now defers the
+   * expensive re-filter with useDeferredValue, so typing stays responsive with
+   * no local state, no timer and no effects at all.
+   */
   const hasActiveFilter = filter.keyword !== '' || filter.status !== 'all';
 
   return (
@@ -49,8 +46,8 @@ export default function FilterSection() {
           <span className="font-medium">Buscar</span>
           <input
             type="search"
-            value={keywordDraft}
-            onChange={(event) => setKeywordDraft(event.target.value)}
+            value={filter.keyword}
+            onChange={(event) => setFilter({ ...filter, keyword: event.target.value })}
             placeholder="Nome, CPF, CIB ou imóvel…"
             className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
           />
@@ -72,7 +69,6 @@ export default function FilterSection() {
           </select>
         </label>
 
-        {/* Priority #6 — pageSize is now user-controlled and persisted. */}
         <label className="flex flex-col gap-1 text-sm text-gray-700">
           <span className="font-medium">Por página</span>
           <select
@@ -89,7 +85,9 @@ export default function FilterSection() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-auto text-xs text-gray-500 lg:mr-2">
+        <span
+          className="mr-auto text-xs text-gray-500 transition-opacity lg:mr-2"
+          style={{ opacity: isFiltering ? 0.5 : 1 }}>
           {response.length} de {totalRows} registro(s)
         </span>
 
@@ -115,7 +113,6 @@ export default function FilterSection() {
           onClick={() => setOpenConfirmModal(true)}
           disabled={isMutating}
           className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50">
-          {/* Typo fixed: "nao entregue" → "não entregues" */}
           Marcar todos como não entregues
         </button>
       </div>

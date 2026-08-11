@@ -180,7 +180,7 @@ export default function ProfilePage() {
 
             <div className="flex items-center gap-2">
               {isAdmin && (
-                <span className="rounded bg-emerald-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                <span className="rounded bg-emerald-100 px-2 py-1 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase">
                   Administrador
                 </span>
               )}
@@ -287,7 +287,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => setShowOldPassword((current) => !current)}
                   aria-label={showOldPassword ? 'Ocultar senha atual' : 'Mostrar senha atual'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 transition hover:text-gray-700">
+                  className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-gray-400 transition hover:text-gray-700">
                   {showOldPassword ? <MdVisibilityOff aria-hidden /> : <MdVisibility aria-hidden />}
                 </button>
               </div>
@@ -317,7 +317,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => setShowNewPassword((current) => !current)}
                   aria-label={showNewPassword ? 'Ocultar nova senha' : 'Mostrar nova senha'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 transition hover:text-gray-700">
+                  className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-gray-400 transition hover:text-gray-700">
                   {showNewPassword ? <MdVisibilityOff aria-hidden /> : <MdVisibility aria-hidden />}
                 </button>
               </div>

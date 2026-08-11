@@ -36,7 +36,7 @@ export default function Table() {
     <div className="border-stroke shadow-default overflow-hidden rounded-md bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[880px] text-left text-sm">
-          <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white">
+          <thead className="bg-slate-900 text-xs tracking-wide text-white uppercase">
             <tr>
               {COLUMNS.map((column) => (
                 <th key={column} scope="col" className="px-4 py-3 font-medium">
