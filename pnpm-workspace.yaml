@@ -14,8 +14,9 @@
 #   • esbuild            — Vitest's transform layer. Blocked ⇒ tests cannot run.
 #   • unrs-resolver      — import resolver used by eslint-config-next.
 #   • sharp              — Next.js image optimisation on some platforms.
-allowBuilds:
-  '@tailwindcss/oxide': true
-  esbuild: true
-  sharp: true
-  unrs-resolver: true
+# pnpm-workspace.yaml — pnpm 10 syntax (array, not map)
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+  - sharp
+  - unrs-resolver
