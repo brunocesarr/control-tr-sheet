@@ -40,3 +40,22 @@ export async function updateSelectedTRStatus(
   });
   return data;
 }
+
+export interface ObservationUpdateResult {
+  statusCellRange: string;
+  observationsCellRange: string;
+  /** Post-normalisation value actually stored in the sheet. */
+  observations: string;
+}
+
+/** `cellRange` is the row's STATUS reference, as carried by SheetRowData. */
+export async function updateTRObservations(
+  cellRange: string,
+  observations: string
+): Promise<ObservationUpdateResult> {
+  const { data } = await apiManagerSheet.patch<ObservationUpdateResult>(
+    '/api/v1/sheet/observations',
+    { cellRange, observations }
+  );
+  return data;
+}

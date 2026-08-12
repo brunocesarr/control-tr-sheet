@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { toast } from 'react-toastify';
 
-import { normaliseText, onlyAlphanumeric, onlyDigits } from '@/helpers/utils';
+import { normaliseObservation } from '@/helpers/sheet-observations';
 import {
   DEFAULT_SORT,
   nextSortState,
@@ -19,6 +19,7 @@ import {
   type SortKey,
   type SortState,
 } from '@/helpers/sheet-sort';
+import { normaliseText, onlyAlphanumeric, onlyDigits } from '@/helpers/utils';
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
@@ -28,6 +29,7 @@ import type { SheetRowData } from '@/interfaces/tr-sheet';
 import {
   getManagerTable,
   setAllRowsStatus,
+  setRowObservations,
   setRowStatus,
   setSelectedRowsStatus,
 } from '@/services/sheet.service';
@@ -90,6 +92,13 @@ export interface SheetContextValue {
   updateStatus: (row: SheetRowData) => Promise<void>;
   updateAllToNoDeliveryStatus: () => Promise<void>;
   updateSelectedStatus: (hasDone: boolean) => Promise<void>;
+  /**
+   * Writes the OBSERVAÇÕES cell for `row`. Pass '' to clear it.
+   *
+   * Rejects on failure so the calling modal can render the error inline and
+   * stay open with the user's text intact.
+   */
+  updateObservations: (row: SheetRowData, observations: string) => Promise<void>;
   refetch: () => void;
 }
 
@@ -191,6 +200,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
     return sortRows(matching, sort);
   }, [data, deferredKeyword, status, sort]);
 
+  // ── Sort & Pagination ───────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filteredValues.length / pageSize));
 
   /** Derived, not stored — an out-of-range page is unrepresentable. */
@@ -277,6 +287,53 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       toast.error((mutationError as Error).message || 'Não foi possível atualizar os status.'),
   });
 
+  /**
+   * Observations write.
+   *
+   * `row.cellRange` is the STATUS cell (e.g. 'B7'); the server derives the
+   * OBSERVAÇÕES target from the header row, so the column letter is never sent
+   * from here. See google.repository.updateObservations.
+   *
+   * Optimistic because a Sheets round trip is 400–900 ms — long enough that a
+   * spinner-then-update reads as broken.
+   *
+   * Deliberately NO toast.error: unlike the status mutations, this one is driven
+   * from a modal that stays open on failure and renders the message inline,
+   * right where the user's unsaved text is. A toast would double-report and
+   * appear far from the field that needs attention. The rejection still
+   * propagates through mutateAsync so the modal can catch it.
+   */
+  const { mutateAsync: saveObservations, isPending: isObservationPending } = useMutation({
+    mutationFn: ({ row, observations }: { row: SheetRowData; observations: string }) =>
+      setRowObservations(row.cellRange, observations),
+    onMutate: async ({ row, observations }) => {
+      await queryClient.cancelQueries({ queryKey: SHEET_QUERY_KEY });
+      const previous = queryClient.getQueryData<SheetRowData[]>(SHEET_QUERY_KEY);
+
+      // Mirror the server's normalisation so the optimistic value matches what
+      // will actually be stored — otherwise the row flickers on reconcile.
+      const next = normaliseObservation(observations);
+
+      queryClient.setQueryData<SheetRowData[]>(SHEET_QUERY_KEY, (current = []) =>
+        current.map((item) =>
+          item.cellRange === row.cellRange
+            ? { ...item, observations: next === '' ? undefined : next }
+            : item
+        )
+      );
+
+      return { previous };
+    },
+    onSuccess: ({ observations }) => {
+      toast.success(observations === '' ? 'Observação removida.' : 'Observação salva.');
+    },
+    onError: (_mutationError, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(SHEET_QUERY_KEY, context.previous);
+    },
+    // Reconcile with the sheet — Sheets can reformat what it stores.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: SHEET_QUERY_KEY }),
+  });
+
   const updateStatus = useCallback(
     async (row: SheetRowData) => {
       await toggleStatus({ row, hasDone: !row.hasDone });
@@ -296,13 +353,21 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
     [bulkUpdate, selectedRanges]
   );
 
+  const updateObservations = useCallback(
+    async (row: SheetRowData, observations: string) => {
+      await saveObservations({ row, observations });
+    },
+    [saveObservations]
+  );
+
   const hasActiveFilter = keyword !== '' || status !== 'all';
 
+  // ── Context Value & Provider ────────────────────────────────────────────
   const value = useMemo<SheetContextValue>(
     () => ({
       isLoading,
       isFetching,
-      isMutating: isTogglePending || isBulkPending,
+      isMutating: isTogglePending || isBulkPending || isObservationPending,
       isFiltering,
       error: error ?? null,
       dataUpdatedAt,
@@ -327,6 +392,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       updateStatus,
       updateAllToNoDeliveryStatus,
       updateSelectedStatus,
+      updateObservations,
       refetch,
     }),
     [
@@ -334,6 +400,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       isFetching,
       isTogglePending,
       isBulkPending,
+      isObservationPending,
       isFiltering,
       error,
       dataUpdatedAt,
@@ -358,6 +425,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       updateStatus,
       updateAllToNoDeliveryStatus,
       updateSelectedStatus,
+      updateObservations,
       refetch,
     ]
   );

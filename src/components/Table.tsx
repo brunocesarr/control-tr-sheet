@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'motion/react';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import {
   MdArrowDownward,
   MdArrowUpward,
@@ -12,6 +12,8 @@ import {
 } from 'react-icons/md';
 
 import EmptyState from '@/components/dashboard/EmptyState';
+import ObservationCell from '@/components/dashboard/ObservationCell';
+import ObservationModal from '@/components/dashboard/ObservationModal';
 import SheetRowCard from '@/components/dashboard/SheetRowCard';
 import StatusToggle from '@/components/dashboard/StatusToggle';
 import Pagination from '@/components/Pagination';
@@ -21,6 +23,7 @@ import { SheetContext } from '@/contexts/useSheetContext';
 import type { SortKey } from '@/helpers/sheet-sort';
 import { formatCpf } from '@/helpers/utils';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
+import type { SheetRowData } from '@/interfaces/tr-sheet';
 
 interface Column {
   key: SortKey | 'observations';
@@ -35,7 +38,7 @@ const COLUMNS: Column[] = [
   { key: 'cpf', label: 'CPF', sortable: true, className: 'w-52' },
   { key: 'cib', label: 'CIB', sortable: true, className: 'w-32' },
   { key: 'imovelRural', label: 'Imóvel Rural', sortable: true },
-  { key: 'observations', label: 'Observações', sortable: false },
+  { key: 'observations', label: 'Observações', sortable: false, className: 'w-64' },
 ];
 
 const SHELL = 'overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card';
@@ -62,9 +65,27 @@ export default function Table() {
     toggleSelectAllOnPage,
     isPageFullySelected,
     updateStatus,
+    updateObservations,
   } = useContext(SheetContext);
 
   const { copy, copiedKey } = useCopyToClipboard();
+
+  /**
+   * A single modal instance for the whole table, driven by which row is being
+   * edited. Rendering one modal per row would mount N dialogs, N focus traps
+   * and N scroll locks for a page of 100 records.
+   */
+  const [editingRow, setEditingRow] = useState<SheetRowData | null>(null);
+
+  /**
+   * The row object in state goes stale the moment the optimistic cache rewrite
+   * produces a new one. Re-reading from `paginatedRows` by cellRange keeps the
+   * modal bound to live data, so a concurrent status toggle is reflected in the
+   * modal's context strip.
+   */
+  const editingRowLive = editingRow
+    ? (paginatedRows.find((row) => row.cellRange === editingRow.cellRange) ?? editingRow)
+    : null;
 
   if (error) {
     return (
@@ -155,9 +176,9 @@ export default function Table() {
           making useDeferredValue's behaviour visible instead of just "fast". */}
       <motion.div animate={{ opacity: isFiltering ? 0.55 : 1 }} transition={{ duration: 0.15 }}>
         {/* ── Desktop table ───────────────────────────────────────────────
-            max-h + overflow-auto on this wrapper is what lets the thead go
-            sticky. Without a scroll container the header had nothing to
-            stick to and scrolled away on 100-row pages. */}
+            max-h + overflow-auto is what lets the thead go sticky. Without a
+            scroll container the header had nothing to stick to and scrolled
+            away on 100-row pages. */}
         <div className="hidden max-h-[68vh] scrollbar-slim overflow-auto md:block">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-900 text-xs tracking-wide text-white uppercase shadow-sm">
@@ -310,10 +331,15 @@ export default function Table() {
 
                     <td className="px-4 py-3.5 text-slate-700">{row.imovelRural || '—'}</td>
 
-                    <td
-                      className="max-w-xs truncate px-4 py-3.5 text-slate-500"
-                      title={row.observations}>
-                      {row.observations || '—'}
+                    {/* Was inert truncated text with a title attribute. The
+                        whole cell is now the edit trigger. */}
+                    <td className="max-w-xs px-4 py-3.5">
+                      <ObservationCell
+                        observations={row.observations}
+                        name={row.name}
+                        disabled={isMutating}
+                        onEdit={() => setEditingRow(row)}
+                      />
                     </td>
                   </motion.tr>
                 );
@@ -322,9 +348,7 @@ export default function Table() {
           </table>
         </div>
 
-        {/* ── Mobile cards ──────────────────────────────────────────────
-            SheetRowCard is untouched; the stagger is applied by wrapping it,
-            which keeps the card a pure presentational component. */}
+        {/* ── Mobile cards ────────────────────────────────────────────── */}
         <motion.div
           key={`cards-${page}-${sort.key}-${sort.direction}`}
           variants={listContainer}
@@ -341,6 +365,7 @@ export default function Table() {
                 onToggleSelect={() => toggleRowSelection(row.cellRange)}
                 onToggleStatus={() => void updateStatus(row)}
                 onCopy={(value, key) => void copy(value, key)}
+                onEditObservations={() => setEditingRow(row)}
               />
             </motion.div>
           ))}
@@ -356,6 +381,12 @@ export default function Table() {
           changePage={setPage}
         />
       )}
+
+      <ObservationModal
+        row={editingRowLive}
+        onClose={() => setEditingRow(null)}
+        onSave={updateObservations}
+      />
     </div>
   );
 }

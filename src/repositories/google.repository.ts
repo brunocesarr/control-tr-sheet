@@ -6,6 +6,8 @@ import {
   type GoogleSpreadsheetWorksheet,
 } from 'google-spreadsheet';
 
+import { normaliseObservation, rowNumberFromA1 } from '@/helpers/sheet-observations';
+
 import { serverEnv } from '@/configs/env.server';
 import { COLUMN_ALIASES, HeaderResolver, type HeaderMatch } from '@/helpers/sheet-headers';
 import {
@@ -160,4 +162,55 @@ function assertRangeTargetsStatusColumn(cellRange: string, statusHeader: HeaderM
         `("${statusHeader.letter}", cabeçalho "${statusHeader.header}").`
     );
   }
+}
+
+/**
+ * Writes the OBSERVAÇÕES cell for the row identified by its STATUS reference.
+ *
+ * The client only ever knows `cellRange`, which is the STATUS cell (e.g. 'B7').
+ * The observations column letter is resolved from the header row here and never
+ * accepted from the request — same reasoning as the missing STATUS_COLUMN
+ * constant. So a caller cannot aim this write at an arbitrary column.
+ *
+ * Returns the resolved target and the stored value so the API can echo exactly
+ * what landed in the sheet after normalisation.
+ */
+export async function updateObservations(
+  statusCellRange: string,
+  observations: string
+): Promise<{ cellRange: string; observations: string }> {
+  const { worksheet, headers, statusHeader } = await loadSheetWithHeaders();
+
+  // Validate the incoming reference against the STATUS column first: it proves
+  // the caller is pointing at a real row rather than a fabricated address.
+  assertRangeTargetsStatusColumn(statusCellRange, statusHeader);
+
+  const rowNumber = rowNumberFromA1(statusCellRange);
+  if (rowNumber === null) {
+    throw new Error(`Referência A1 inválida: "${statusCellRange}".`);
+  }
+
+  const observationsHeader = headers.require('OBSERVAÇÕES', COLUMN_ALIASES.observations);
+
+  // Defensive: a sheet whose STATUS and OBSERVAÇÕES aliases collide would make
+  // this write silently flip a delivery status.
+  if (observationsHeader.letter === statusHeader.letter) {
+    throw new Error(
+      `Conflito de colunas: OBSERVAÇÕES e STATUS resolveram para "${statusHeader.letter}".`
+    );
+  }
+
+  const targetRange = `${observationsHeader.letter}${rowNumber}`;
+  const value = normaliseObservation(observations);
+
+  await withRetry(() => worksheet.loadCells(targetRange));
+  const cell = worksheet.getCellByA1(targetRange);
+
+  // null clears the cell; '' would leave an empty-string value behind that
+  // reads back as a non-empty cell in some Sheets clients.
+  cell.value = value.length === 0 ? null : value;
+
+  await withRetry(() => worksheet.saveUpdatedCells());
+
+  return { cellRange: targetRange, observations: value };
 }

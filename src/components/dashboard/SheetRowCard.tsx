@@ -2,6 +2,7 @@
 
 import { MdCheck, MdContentCopy, MdErrorOutline } from 'react-icons/md';
 
+import ObservationCell from '@/components/dashboard/ObservationCell';
 import StatusToggle from '@/components/dashboard/StatusToggle';
 import { formatCpf } from '@/helpers/utils';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
@@ -14,12 +15,13 @@ interface SheetRowCardProps {
   onToggleSelect: () => void;
   onToggleStatus: () => void;
   onCopy: (value: string, key: string) => void;
+  onEditObservations: () => void;
 }
 
 /**
  * Mobile presentation of a row.
  *
- * The table needs min-w-[880px] for six columns, which forced horizontal
+ * The table needs min-w-[900px] for six columns, which forced horizontal
  * scrolling on phones. This renders below `md` instead.
  */
 export default function SheetRowCard({
@@ -30,6 +32,7 @@ export default function SheetRowCard({
   onToggleSelect,
   onToggleStatus,
   onCopy,
+  onEditObservations,
 }: SheetRowCardProps) {
   const cpfKey = `${row.cellRange}-cpf`;
 
@@ -68,7 +71,7 @@ export default function SheetRowCard({
                 type="button"
                 onClick={() => onCopy(row.cpf, cpfKey)}
                 aria-label="Copiar CPF"
-                className="rounded p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                className="rounded p-0.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
                 {copiedKey === cpfKey ? (
                   <MdCheck aria-hidden className="text-emerald-600" />
                 ) : (
@@ -97,12 +100,21 @@ export default function SheetRowCard({
           <dt className="font-medium tracking-wide text-slate-400 uppercase">Imóvel</dt>
           <dd className="truncate text-slate-700">{row.imovelRural || '—'}</dd>
         </div>
-        {row.observations && (
-          <div className="col-span-2 min-w-0">
-            <dt className="font-medium tracking-wide text-slate-400 uppercase">Observações</dt>
-            <dd className="text-slate-600">{row.observations}</dd>
-          </div>
-        )}
+
+        {/* Always rendered now — previously hidden when empty, which meant a
+            note could never be added from a phone. */}
+        <div className="col-span-2 min-w-0">
+          <dt className="mb-1 font-medium tracking-wide text-slate-400 uppercase">Observações</dt>
+          <dd>
+            <ObservationCell
+              observations={row.observations}
+              name={row.name}
+              disabled={isMutating}
+              onEdit={onEditObservations}
+              variant="card"
+            />
+          </dd>
+        </div>
       </dl>
     </article>
   );

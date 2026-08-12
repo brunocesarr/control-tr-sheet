@@ -1,9 +1,11 @@
 import { validateCpf } from '@/helpers/validators';
 import type { RawSheetRow, SheetRowData } from '@/interfaces/tr-sheet';
 import {
+  ObservationUpdateResult,
   readManagerSheet,
   updateAllTRStatus,
   updateSelectedTRStatus,
+  updateTRObservations,
   updateTRStatus,
 } from '@/repositories/sheet.repository';
 
@@ -38,4 +40,12 @@ export async function setAllRowsStatus(hasDone: boolean) {
 /** Scoped bulk update — used by the selection bar. */
 export async function setSelectedRowsStatus(cellRanges: string[], hasDone: boolean) {
   return updateSelectedTRStatus(cellRanges, hasDone);
+}
+
+/** Named for symmetry with setRowStatus / setAllRowsStatus. */
+export async function setRowObservations(
+  cellRange: string,
+  observations: string
+): Promise<ObservationUpdateResult> {
+  return updateTRObservations(cellRange, observations);
 }
