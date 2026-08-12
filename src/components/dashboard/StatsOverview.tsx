@@ -58,12 +58,13 @@ export default function StatsOverview() {
     },
     {
       key: 'invalid',
-      label: 'CPF inválido',
-      value: stats.invalidCpf,
+      label: 'CPF/CNPJ inválido',
+      value: stats.invalidDocument,
       icon: MdErrorOutline,
-      accent: stats.invalidCpf > 0 ? 'text-red-700' : 'text-slate-400',
-      iconWrap: stats.invalidCpf > 0 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400',
-      filter: 'invalid-cpf',
+      accent: stats.invalidDocument > 0 ? 'text-red-700' : 'text-slate-400',
+      iconWrap:
+        stats.invalidDocument > 0 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400',
+      filter: 'invalid-document',
       hint: 'Dígito verificador incorreto',
     },
   ];
@@ -214,10 +215,10 @@ export default function StatsOverview() {
               {stats.pending} restantes
             </span>
           )}
-          {stats.invalidCpf > 0 && (
+          {stats.invalidDocument > 0 && (
             <span className="inline-flex items-center gap-1.5 font-medium text-red-600">
               <span aria-hidden className="size-2 rounded-full bg-red-500" />
-              {stats.invalidCpf} com CPF inválido
+              {stats.invalidDocument} com documento inválido
             </span>
           )}
         </p>

@@ -14,7 +14,8 @@ function makeRow(overrides: Partial<SheetRowData>): SheetRowData {
     status: 'NÃO ENTREGUE',
     cpf: '',
     name: '',
-    isCpfValid: true,
+    documentType: 'unknown',
+    isDocumentValid: true,
     ...overrides,
   };
 }

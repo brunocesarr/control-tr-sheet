@@ -11,7 +11,7 @@ import {
   normaliseObservation,
   OBSERVATION_WARN_AT,
 } from '@/helpers/sheet-observations';
-import { formatCpf } from '@/helpers/utils';
+import { formatDocument } from '@/helpers/utils';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
 
 interface ObservationModalProps {
@@ -107,7 +107,7 @@ export default function ObservationModal({ row, onClose, onSave }: ObservationMo
               {row.name || 'Sem nome'}
             </span>
             {row.cpf && (
-              <span className="font-mono text-xs text-slate-500">{formatCpf(row.cpf)}</span>
+              <span className="font-mono text-xs text-slate-500">{formatDocument(row.cpf)}</span>
             )}
             <span
               className={`ml-auto shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${

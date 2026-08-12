@@ -21,7 +21,7 @@ import Skeleton from '@/components/Skeleton';
 import { listContainer, listItem, springSnappy } from '@/configs/motion';
 import { SheetContext } from '@/contexts/useSheetContext';
 import type { SortKey } from '@/helpers/sheet-sort';
-import { formatCpf } from '@/helpers/utils';
+import { formatDocument } from '@/helpers/utils';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
 
@@ -33,10 +33,11 @@ interface Column {
 }
 
 const COLUMNS: Column[] = [
-  { key: 'status', label: 'Status', sortable: true, className: 'w-36' },
+  { key: 'status', label: 'Status', sortable: true, className: 'w-24' },
   { key: 'name', label: 'Nome', sortable: true },
-  { key: 'cpf', label: 'CPF', sortable: true, className: 'w-52' },
-  { key: 'cib', label: 'CIB', sortable: true, className: 'w-32' },
+  // Widened from w-52: a masked CNPJ plus its type badge needs the room.
+  { key: 'cpf', label: 'CPF / CNPJ', sortable: true, className: 'w-60' },
+  { key: 'cib', label: 'CIB', sortable: true, className: 'w-36' },
   { key: 'imovelRural', label: 'Imóvel Rural', sortable: true },
   { key: 'observations', label: 'Observações', sortable: false, className: 'w-64' },
 ];
@@ -230,7 +231,7 @@ export default function Table() {
               className="divide-y divide-slate-100">
               {paginatedRows.map((row) => {
                 const isSelected = selectedRanges.has(row.cellRange);
-                const cpfKey = `${row.cellRange}-cpf`;
+                const documentKey = `${row.cellRange}-document`;
                 const cibKey = `${row.cellRange}-cib`;
 
                 return (
@@ -274,20 +275,33 @@ export default function Table() {
 
                     <td className="px-4 py-3.5 font-medium text-slate-900">{row.name || '—'}</td>
 
+                    {/* ── CPF / CNPJ ──────────────────────────────────── */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-xs text-slate-700">
-                          {row.cpf ? formatCpf(row.cpf) : '—'}
+                          {row.cpf ? formatDocument(row.cpf) : '—'}
                         </span>
 
-                        {/* The whole point of wiring up validateCpf: a bad
+                        {/* A 14-char entry in a column the team still calls
+                            "CPF" is worth making explicit. */}
+                        {row.documentType === 'cnpj' && (
+                          <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
+                            CNPJ
+                          </span>
+                        )}
+
+                        {/* The whole point of wiring up validateDocument: a bad
                             check digit means a rejected declaration. */}
-                        {row.cpf && !row.isCpfValid && (
+                        {row.cpf && !row.isDocumentValid && (
                           <motion.span
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            title="Dígito verificador inválido"
-                            className="inline-flex items-center gap-0.5 rounded-md bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                            title={
+                              row.documentType === 'unknown'
+                                ? 'Documento com quantidade de caracteres inválida'
+                                : 'Dígito verificador inválido'
+                            }
+                            className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
                             <MdErrorOutline aria-hidden /> Inválido
                           </motion.span>
                         )}
@@ -295,10 +309,10 @@ export default function Table() {
                         {row.cpf && (
                           <button
                             type="button"
-                            onClick={() => void copy(row.cpf, cpfKey)}
-                            aria-label={`Copiar CPF de ${row.name}`}
+                            onClick={() => void copy(row.cpf, documentKey)}
+                            aria-label={`Copiar documento de ${row.name}`}
                             className="rounded p-0.5 text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-700">
-                            {copiedKey === cpfKey ? (
+                            {copiedKey === documentKey ? (
                               <MdCheck aria-hidden className="text-emerald-600" />
                             ) : (
                               <MdContentCopy aria-hidden />
@@ -331,8 +345,6 @@ export default function Table() {
 
                     <td className="px-4 py-3.5 text-slate-700">{row.imovelRural || '—'}</td>
 
-                    {/* Was inert truncated text with a title attribute. The
-                        whole cell is now the edit trigger. */}
                     <td className="max-w-xs px-4 py-3.5">
                       <ObservationCell
                         observations={row.observations}

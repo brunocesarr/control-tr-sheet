@@ -1,5 +1,5 @@
 import type { SheetRowData } from '@/interfaces/tr-sheet';
-import { formatCpf } from '@/helpers/utils';
+import { formatDocument } from '@/helpers/utils';
 
 /**
  * Excel in pt-BR locales parses `;` as the field separator, not `,`.
@@ -41,8 +41,8 @@ export function rowsToCsv(rows: readonly SheetRowData[]): string {
     lines.push(
       [
         escapeCell(row.status),
-        escapeCell(row.cpf ? formatCpf(row.cpf) : ''),
-        escapeCell(row.isCpfValid ? 'Sim' : 'Não'),
+        escapeCell(row.cpf ? formatDocument(row.cpf) : ''),
+        escapeCell(row.isDocumentValid ? 'Sim' : 'Não'),
         escapeCell(row.name),
         escapeCell(row.cib),
         escapeCell(row.imovelRural),

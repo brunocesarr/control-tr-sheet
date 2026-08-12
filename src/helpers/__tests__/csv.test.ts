@@ -13,7 +13,8 @@ function makeRow(overrides: Partial<SheetRowData> = {}): SheetRowData {
     cib: 'CIB-001',
     imovelRural: 'Fazenda Sol',
     observations: undefined,
-    isCpfValid: true,
+    documentType: 'cpf',
+    isDocumentValid: true,
     ...overrides,
   };
 }
@@ -30,13 +31,13 @@ describe('rowsToCsv', () => {
   });
 
   it('formats the CPF and reports validity', () => {
-    const csv = rowsToCsv([makeRow({ cpf: '52998224725', isCpfValid: true })]);
+    const csv = rowsToCsv([makeRow({ cpf: '52998224725', isDocumentValid: true })]);
     expect(csv).toContain('529.982.247-25');
     expect(csv).toContain('Sim');
   });
 
   it('flags an invalid CPF', () => {
-    expect(rowsToCsv([makeRow({ isCpfValid: false })])).toContain('Não');
+    expect(rowsToCsv([makeRow({ isDocumentValid: false })])).toContain('Não');
   });
 
   it('quotes and escapes embedded quotes and delimiters', () => {

@@ -1,4 +1,4 @@
-import { validateCpf } from '@/helpers/validators';
+import { detectDocumentType, validateDocument } from '@/helpers/validators';
 import type { RawSheetRow, SheetRowData } from '@/interfaces/tr-sheet';
 import {
   ObservationUpdateResult,
@@ -17,7 +17,11 @@ import {
  * ignorant of it.
  */
 function enrich(row: RawSheetRow): SheetRowData {
-  return { ...row, isCpfValid: validateCpf(row.cpf) };
+  return {
+    ...row,
+    documentType: detectDocumentType(row.cpf),
+    isDocumentValid: validateDocument(row.cpf),
+  };
 }
 
 /**

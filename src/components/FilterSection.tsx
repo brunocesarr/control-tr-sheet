@@ -14,7 +14,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
   { value: 'done', label: 'Entregues' },
   { value: 'pending', label: 'Não entregues' },
-  { value: 'invalid-cpf', label: 'CPF inválido' },
+  { value: 'invalid-document', label: 'CPF/CNPJ inválido' },
 ];
 
 const FIELD =
@@ -76,7 +76,7 @@ export default function FilterSection() {
               type="search"
               value={filter.keyword}
               onChange={(event) => setFilter({ ...filter, keyword: event.target.value })}
-              placeholder="Nome, CPF, CIB ou imóvel…"
+              placeholder="Nome, CPF/CNPJ, CIB, imóvel ou observação…"
               className={`${FIELD} w-full pr-14 pl-10`}
             />
             {!filter.keyword && (

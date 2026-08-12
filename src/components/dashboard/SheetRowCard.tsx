@@ -4,7 +4,7 @@ import { MdCheck, MdContentCopy, MdErrorOutline } from 'react-icons/md';
 
 import ObservationCell from '@/components/dashboard/ObservationCell';
 import StatusToggle from '@/components/dashboard/StatusToggle';
-import { formatCpf } from '@/helpers/utils';
+import { formatDocument } from '@/helpers/utils';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
 
 interface SheetRowCardProps {
@@ -34,7 +34,7 @@ export default function SheetRowCard({
   onCopy,
   onEditObservations,
 }: SheetRowCardProps) {
-  const cpfKey = `${row.cellRange}-cpf`;
+  const documentKey = `${row.cellRange}-document`;
 
   return (
     <article
@@ -53,15 +53,26 @@ export default function SheetRowCard({
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-slate-900">{row.name || '—'}</h3>
 
-          <div className="mt-1 flex items-center gap-1.5">
+          {/* flex-wrap: a masked CNPJ plus two badges overflows 360px viewports. */}
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className="font-mono text-xs text-slate-600">
-              {row.cpf ? formatCpf(row.cpf) : '—'}
+              {row.cpf ? formatDocument(row.cpf) : '—'}
             </span>
 
-            {row.cpf && !row.isCpfValid && (
+            {row.documentType === 'cnpj' && (
+              <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">
+                CNPJ
+              </span>
+            )}
+
+            {row.cpf && !row.isDocumentValid && (
               <span
-                title="Dígito verificador inválido"
-                className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                title={
+                  row.documentType === 'unknown'
+                    ? 'Documento com quantidade de caracteres inválida'
+                    : 'Dígito verificador inválido'
+                }
+                className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
                 <MdErrorOutline aria-hidden /> Inválido
               </span>
             )}
@@ -69,10 +80,10 @@ export default function SheetRowCard({
             {row.cpf && (
               <button
                 type="button"
-                onClick={() => onCopy(row.cpf, cpfKey)}
-                aria-label="Copiar CPF"
+                onClick={() => onCopy(row.cpf, documentKey)}
+                aria-label="Copiar documento"
                 className="rounded p-0.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
-                {copiedKey === cpfKey ? (
+                {copiedKey === documentKey ? (
                   <MdCheck aria-hidden className="text-emerald-600" />
                 ) : (
                   <MdContentCopy aria-hidden />
@@ -101,8 +112,8 @@ export default function SheetRowCard({
           <dd className="truncate text-slate-700">{row.imovelRural || '—'}</dd>
         </div>
 
-        {/* Always rendered now — previously hidden when empty, which meant a
-            note could never be added from a phone. */}
+        {/* Always rendered — previously hidden when empty, which meant a note
+            could never be added from a phone. */}
         <div className="col-span-2 min-w-0">
           <dt className="mb-1 font-medium tracking-wide text-slate-400 uppercase">Observações</dt>
           <dd>

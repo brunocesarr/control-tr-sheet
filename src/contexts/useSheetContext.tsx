@@ -19,7 +19,8 @@ import {
   type SortKey,
   type SortState,
 } from '@/helpers/sheet-sort';
-import { normaliseText, onlyAlphanumeric, onlyDigits } from '@/helpers/utils';
+import { normaliseText, onlyAlphanumeric } from '@/helpers/utils';
+import { normaliseDocument } from '@/helpers/validators';
 import {
   DEFAULT_PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
@@ -34,8 +35,8 @@ import {
   setSelectedRowsStatus,
 } from '@/services/sheet.service';
 
-/** 'invalid-cpf' surfaces rows whose check digits fail. */
-export type StatusFilter = 'all' | 'done' | 'pending' | 'invalid-cpf';
+/** 'invalid-document' surfaces rows whose CPF/CNPJ check digits fail. */
+export type StatusFilter = 'all' | 'done' | 'pending' | 'invalid-document';
 
 export { PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE };
 
@@ -49,7 +50,8 @@ export interface SheetStats {
   total: number;
   done: number;
   pending: number;
-  invalidCpf: number;
+  /** Rows whose CPF or CNPJ fails check-digit validation. */
+  invalidDocument: number;
   /** 0–100, rounded. */
   completion: number;
 }
@@ -160,41 +162,47 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
   /** Computed over the FULL dataset — stats must not shift when filtering. */
   const stats = useMemo<SheetStats>(() => {
     let done = 0;
-    let invalidCpf = 0;
+    let invalidDocument = 0;
 
     for (const row of data) {
       if (row.hasDone) done += 1;
-      if (!row.isCpfValid) invalidCpf += 1;
+      if (!row.isDocumentValid) invalidDocument += 1;
     }
 
     return {
       total: data.length,
       done,
       pending: data.length - done,
-      invalidCpf,
+      invalidDocument,
       completion: data.length === 0 ? 0 : Math.round((done / data.length) * 100),
     };
   }, [data]);
 
   const filteredValues = useMemo(() => {
     const needle = normaliseText(deferredKeyword);
-    const needleDigits = onlyDigits(deferredKeyword);
     const needleAlnum = onlyAlphanumeric(deferredKeyword).toLowerCase();
+    /**
+     * Documents are matched alphanumerically now. The previous onlyDigits()
+     * stripped the letters out of an alphanumeric CNPJ on BOTH sides of the
+     * comparison, so those rows were unfindable by document.
+     */
+    const needleDocument = normaliseDocument(deferredKeyword);
 
     const matching = data.filter((value) => {
       if (status === 'done' && !value.hasDone) return false;
       if (status === 'pending' && value.hasDone) return false;
-      if (status === 'invalid-cpf' && value.isCpfValid) return false;
+      if (status === 'invalid-document' && value.isDocumentValid) return false;
       if (!needle) return true;
 
       const matchesName = normaliseText(value.name).includes(needle);
-      const matchesCpf = needleDigits.length > 0 && onlyDigits(value.cpf).includes(needleDigits);
+      const matchesDocument =
+        needleDocument.length > 0 && normaliseDocument(value.cpf).includes(needleDocument);
       const matchesCib =
         needleAlnum.length > 0 && onlyAlphanumeric(value.cib).toLowerCase().includes(needleAlnum);
       const matchesProperty = normaliseText(value.imovelRural).includes(needle);
       const matchesObservations = normaliseText(value.observations).includes(needle);
 
-      return matchesName || matchesCpf || matchesCib || matchesProperty || matchesObservations;
+      return matchesName || matchesDocument || matchesCib || matchesProperty || matchesObservations;
     });
 
     return sortRows(matching, sort);
@@ -294,14 +302,9 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
    * OBSERVAÇÕES target from the header row, so the column letter is never sent
    * from here. See google.repository.updateObservations.
    *
-   * Optimistic because a Sheets round trip is 400–900 ms — long enough that a
-   * spinner-then-update reads as broken.
-   *
-   * Deliberately NO toast.error: unlike the status mutations, this one is driven
-   * from a modal that stays open on failure and renders the message inline,
-   * right where the user's unsaved text is. A toast would double-report and
-   * appear far from the field that needs attention. The rejection still
-   * propagates through mutateAsync so the modal can catch it.
+   * Deliberately NO toast.error: this one is driven from a modal that stays
+   * open on failure and renders the message inline, right beside the user's
+   * unsaved text. The rejection still propagates through mutateAsync.
    */
   const { mutateAsync: saveObservations, isPending: isObservationPending } = useMutation({
     mutationFn: ({ row, observations }: { row: SheetRowData; observations: string }) =>
@@ -330,7 +333,6 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
     onError: (_mutationError, _variables, context) => {
       if (context?.previous) queryClient.setQueryData(SHEET_QUERY_KEY, context.previous);
     },
-    // Reconcile with the sheet — Sheets can reformat what it stores.
     onSettled: () => queryClient.invalidateQueries({ queryKey: SHEET_QUERY_KEY }),
   });
 

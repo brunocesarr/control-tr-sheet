@@ -2,6 +2,30 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { formatCpf, normaliseText, onlyAlphanumeric, onlyDigits, withRetry } from '@/helpers/utils';
 
+import { formatDocument } from '@/helpers/utils';
+
+describe('formatDocument', () => {
+  it('masks a CPF', () => {
+    expect(formatDocument('52998224725')).toBe('529.982.247-25');
+  });
+
+  it('masks a numeric CNPJ', () => {
+    expect(formatDocument('11222333000181')).toBe('11.222.333/0001-81');
+  });
+
+  it('masks an alphanumeric CNPJ without truncating', () => {
+    expect(formatDocument('12ABC34501DE35')).toBe('12.ABC.345/01DE-35');
+  });
+
+  it('leaves unrecognised lengths unmasked but normalised', () => {
+    expect(formatDocument('123.456')).toBe('123456');
+  });
+
+  it('handles nullish input', () => {
+    expect(formatDocument(null)).toBe('');
+  });
+});
+
 describe('formatCpf', () => {
   it('masks progressively', () => {
     expect(formatCpf('529')).toBe('529');
