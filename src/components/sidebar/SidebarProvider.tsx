@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import { usePersistedState } from '@/hooks/usePersistedState';
 
@@ -18,6 +18,8 @@ interface SidebarContextValue {
   toggleCollapsed: () => void;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  /** Convenience for the Navbar trigger. */
+  openMobile: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
@@ -30,14 +32,23 @@ export function useSidebar(): SidebarContextValue {
 
 export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = usePersistedState(SIDEBAR_COLLAPSED_KEY, false);
-  // Deliberately not persisted — a drawer restored open on load is a bug.
-  const [mobileOpen, setMobileOpen] = usePersistedState('control-tr:sidebar-mobile', false);
+
+  /**
+   * Plain useState, NOT usePersistedState.
+   *
+   * The previous line used usePersistedState with the key
+   * 'control-tr:sidebar-mobile', which contradicted its own comment: the drawer
+   * state survived reloads, so a drawer left open reopened over the content on
+   * next load. Ephemeral UI state must not be persisted.
+   */
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleCollapsed = useCallback(() => setCollapsed((current) => !current), [setCollapsed]);
+  const openMobile = useCallback(() => setMobileOpen(true), []);
 
   const value = useMemo(
-    () => ({ collapsed, toggleCollapsed, mobileOpen, setMobileOpen }),
-    [collapsed, toggleCollapsed, mobileOpen, setMobileOpen]
+    () => ({ collapsed, toggleCollapsed, mobileOpen, setMobileOpen, openMobile }),
+    [collapsed, toggleCollapsed, mobileOpen, openMobile]
   );
 
   return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
