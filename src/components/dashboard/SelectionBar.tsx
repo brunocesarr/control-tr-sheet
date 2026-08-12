@@ -8,6 +8,7 @@ import { ConfirmModal } from '@/components/CustomModals';
 import { SheetContext } from '@/contexts/useSheetContext';
 import { springPanel, springSnap } from '@/helpers/motion';
 import { pluralise } from '@/helpers/utils';
+import ExportPdfButton from './ExportPdfButton';
 
 /**
  * Now a floating action bar pinned to the bottom of the viewport.
@@ -17,7 +18,7 @@ import { pluralise } from '@/helpers/utils';
  * still and keeps the actions reachable no matter how far you have scrolled.
  */
 export default function SelectionBar() {
-  const { selectedRanges, clearSelection, updateSelectedStatus, isMutating } =
+  const { selectedRanges, selectedRows, clearSelection, updateSelectedStatus, isMutating } =
     useContext(SheetContext);
 
   const [pending, setPending] = useState<{ hasDone: boolean } | null>(null);
@@ -71,6 +72,8 @@ export default function SelectionBar() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-amber-200 focus-ring transition hover:bg-white/10 disabled:opacity-50">
                   <MdRemoveDone aria-hidden /> Marcar pendente
                 </motion.button>
+
+                <ExportPdfButton rows={selectedRows} variant="selection" />
 
                 <button
                   type="button"

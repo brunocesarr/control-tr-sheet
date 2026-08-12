@@ -11,10 +11,11 @@ const DELIMITER = ';';
 /** UTF-8 BOM. Without it Excel renders "OBSERVAÇÕES" as "OBSERVAÃ‡Ã•ES". */
 const BOM = '\uFEFF';
 
-const HEADERS = [
+export const CSV_HEADERS = [
   'STATUS',
-  'CPF',
-  'CPF VÁLIDO',
+  'CPF / CNPJ',
+  'TIPO',
+  'DOCUMENTO VÁLIDO',
   'NOME',
   'CIB',
   'IMÓVEL RURAL',
@@ -35,13 +36,14 @@ function escapeCell(value: string | undefined): string {
 }
 
 export function rowsToCsv(rows: readonly SheetRowData[]): string {
-  const lines = [HEADERS.join(DELIMITER)];
+  const lines = [CSV_HEADERS.join(DELIMITER)];
 
   for (const row of rows) {
     lines.push(
       [
         escapeCell(row.status),
         escapeCell(row.cpf ? formatDocument(row.cpf) : ''),
+        escapeCell(row.documentType),
         escapeCell(row.isDocumentValid ? 'Sim' : 'Não'),
         escapeCell(row.name),
         escapeCell(row.cib),

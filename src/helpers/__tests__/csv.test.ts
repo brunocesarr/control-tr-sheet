@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildCsvFilename, rowsToCsv } from '@/helpers/csv';
+import { buildCsvFilename, CSV_HEADERS, rowsToCsv } from '@/helpers/csv';
 import type { SheetRowData } from '@/interfaces/tr-sheet';
 
 function makeRow(overrides: Partial<SheetRowData> = {}): SheetRowData {
@@ -27,7 +27,7 @@ describe('rowsToCsv', () => {
   it('uses semicolons, which pt-BR Excel expects as the field separator', () => {
     const [header] = rowsToCsv([]).replace('\uFEFF', '').split('\r\n');
     expect(header).toContain(';');
-    expect(header?.split(';')).toHaveLength(7);
+    expect(header?.split(';')).toHaveLength(CSV_HEADERS.length);
   });
 
   it('formats the CPF and reports validity', () => {
@@ -64,5 +64,29 @@ describe('rowsToCsv', () => {
 describe('buildCsvFilename', () => {
   it('includes an ISO date and the .csv extension', () => {
     expect(buildCsvFilename()).toMatch(/^controle-itr-\d{4}-\d{2}-\d{2}\.csv$/);
+  });
+});
+
+describe('CSV_HEADERS', () => {
+  it('matches the header line emitted by rowsToCsv', () => {
+    const [header] = rowsToCsv([]).replace('\uFEFF', '').split('\r\n');
+    expect(header).toBe(CSV_HEADERS.join(';'));
+  });
+
+  it('emits one cell per header for every row', () => {
+    const csv = rowsToCsv([
+      {
+        cellRange: 'B2',
+        hasDone: true,
+        status: 'ENTREGUE',
+        cpf: '12ABC34501DE35',
+        name: 'Agro Comercial',
+        documentType: 'cnpj',
+        isDocumentValid: true,
+      },
+    ]);
+
+    const [, firstRow] = csv.replace('\uFEFF', '').split('\r\n');
+    expect(firstRow?.split(';')).toHaveLength(CSV_HEADERS.length);
   });
 });

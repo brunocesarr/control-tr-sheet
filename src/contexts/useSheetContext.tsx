@@ -85,6 +85,7 @@ export interface SheetContextValue {
   paginatedRows: SheetRowData[];
 
   selectedRanges: ReadonlySet<string>;
+  selectedRows: SheetRowData[];
   toggleRowSelection: (cellRange: string) => void;
   toggleSelectAllOnPage: () => void;
   clearSelection: () => void;
@@ -362,6 +363,15 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
     [saveObservations]
   );
 
+  const selectedRows = useMemo(
+    () =>
+      sortRows(
+        data.filter((row) => selectedRanges.has(row.cellRange)),
+        sort
+      ),
+    [data, selectedRanges, sort]
+  );
+
   const hasActiveFilter = keyword !== '' || status !== 'all';
 
   // ── Context Value & Provider ────────────────────────────────────────────
@@ -387,6 +397,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       totalPages,
       paginatedRows,
       selectedRanges,
+      selectedRows,
       toggleRowSelection,
       toggleSelectAllOnPage,
       clearSelection,
@@ -420,6 +431,7 @@ export default function SheetProvider({ children }: { children: ReactNode }) {
       totalPages,
       paginatedRows,
       selectedRanges,
+      selectedRows,
       toggleRowSelection,
       toggleSelectAllOnPage,
       clearSelection,
