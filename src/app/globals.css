@@ -1,17 +1,41 @@
 @import 'tailwindcss';
 
-/**
- * Tailwind v4 CSS-first configuration, replacing the deleted
- * tailwind.config.ts. That file only extended two colours; both are
- * reproduced below as @theme tokens.
- */
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Brand accents shared by the auth screens and the dashboard. */
+  /*
+   * Literal oklch() values — NOT var() indirection.
+   *
+   * Tailwind's alpha modifier wraps these in color-mix(). A token defined as
+   * `var(--something)` can resolve to an empty/invalid value at compute time,
+   * which makes color-mix invalid and causes Tailwind to drop the entire
+   * background declaration. That is what blanked the navbar when it used
+   * `bg-sidebar/90`. Literal colours are always mixable.
+   */
   --color-brand-surface: oklch(20.8% 0.042 265.755); /* ≈ slate-900 */
   --color-brand-accent: oklch(69.6% 0.17 162.48); /* ≈ emerald-500 */
+  --color-brand-accent-strong: oklch(59.6% 0.145 163.225);
+  --color-brand-accent-soft: oklch(95.1% 0.052 163.051);
+
+  --color-rail-900: oklch(17.9% 0.032 265.7);
+  --color-rail-800: oklch(22.5% 0.038 265.7);
+  --color-rail-700: oklch(27.9% 0.041 265.7);
+
+  /* Sidebar surfaces */
+  --color-sidebar: oklch(17.5% 0.032 265.755);
+  --color-sidebar-raised: oklch(23% 0.038 265.755);
+  --color-sidebar-border: oklch(30% 0.028 265.755);
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px oklch(0% 0 0 / 5%), 0 8px 24px -12px oklch(0% 0 0 / 12%);
+  --shadow-card-hover: 0 2px 4px oklch(0% 0 0 / 6%), 0 16px 32px -12px oklch(0% 0 0 / 18%);
+  --shadow-overlay: 0 32px 64px -16px oklch(0% 0 0 / 35%);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-shimmer: shimmer 2s var(--ease-out-quint) infinite;
+  --animate-pulse-ring: pulse-ring 2s ease-out infinite;
 }
 
 :root {
@@ -30,12 +54,57 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Next 16 no longer forces scroll-behavior: smooth on SPA navigation.
-   Opt in explicitly, but respect reduced-motion preferences. */
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
+  }
+}
+
+/* ── Reusable primitives ─────────────────────────────────────────────── */
+
+@utility card {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-slate-200);
+  background-color: white;
+  box-shadow: var(--shadow-card);
+}
+
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    box-shadow:
+      0 0 0 2px white,
+      0 0 0 4px var(--color-brand-accent);
+  }
+}
+
+/* Slim scrollbar for the sidebar / modal bodies. */
+@utility scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(100% 0 0 / 0.18) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: oklch(100% 0 0 / 0.18);
+  }
+}
+
+/* Sheen used by the progress bar. Paused under reduced-motion. */
+@keyframes sheen {
+  100% {
+    transform: translateX(200%);
+  }
+}
+.animate-sheen {
+  animation: sheen 2.4s var(--ease-out-soft) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheen {
+    animation: none;
   }
 }

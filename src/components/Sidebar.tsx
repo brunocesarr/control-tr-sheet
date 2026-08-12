@@ -1,24 +1,48 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useContext, useState } from 'react';
-import { MdClose, MdDashboard, MdLogout, MdMenu, MdPerson } from 'react-icons/md';
+import { AnimatePresence, motion } from 'motion/react';
+import { useCallback, useContext, useRef, useState } from 'react';
+import {
+  MdChevronLeft,
+  MdChevronRight,
+  MdClose,
+  MdDashboard,
+  MdKeyboardCommandKey,
+  MdPerson,
+  MdTableChart,
+} from 'react-icons/md';
 
-import { AlertModal, ConfirmModal } from '@/components/CustomModals';
+import { AlertModal, ConfirmModal, ShortcutsModal } from '@/components/CustomModals';
+import SidebarNav, { type NavGroup } from '@/components/sidebar/SidebarNav';
+import SidebarUserCard from '@/components/sidebar/SidebarUserCard';
+import { useSidebar } from '@/components/sidebar/SidebarProvider';
 import { AuthContext } from '@/contexts/useAuthContext';
+import { springPanel, springSnap } from '@/helpers/motion';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
-/** Now consumes `isAdmin` from context rather than re-deriving it from labels. */
+const EXPANDED_WIDTH = 264;
+const COLLAPSED_WIDTH = 76;
+
 export default function Sidebar() {
-  const { logout, loggedInUser, isAdmin } = useContext(AuthContext);
-  const pathname = usePathname();
+  const { logout, loggedInUser, isAdmin, refreshSession } = useContext(AuthContext);
+  const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
 
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [openAlertModal, setOpenAlertModal] = useState(false);
+  const [openShortcuts, setOpenShortcuts] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogout = async () => {
+  const drawerRef = useRef<HTMLElement>(null);
+  useFocusTrap(drawerRef, mobileOpen);
+
+  // `[` toggles the rail, `?` opens the shortcut sheet — both skipped while
+  // typing so they never eat characters in the search box.
+  useKeyboardShortcut('[', toggleCollapsed);
+  useKeyboardShortcut('?', () => setOpenShortcuts(true));
+  useKeyboardShortcut('Escape', () => setMobileOpen(false), { allowInInput: true });
+
+  const handleLogout = useCallback(async () => {
     try {
       await logout();
       setOpenConfirmModal(false);
@@ -26,116 +50,185 @@ export default function Sidebar() {
       setErrorMessage(error instanceof Error ? error.message : 'Não foi possível sair da conta.');
       setOpenAlertModal(true);
     }
-  };
+  }, [logout]);
 
-  const links = [
-    { href: '/home', label: 'Dashboard', icon: MdDashboard, disabled: !isAdmin },
-    { href: '/profile', label: 'Perfil', icon: MdPerson, disabled: false },
+  const handleRefreshSession = useCallback(() => {
+    void refreshSession();
+  }, [refreshSession]);
+
+  const groups: NavGroup[] = [
+    {
+      title: 'Operação',
+      items: [
+        {
+          href: '/home',
+          label: 'Dashboard',
+          icon: MdDashboard,
+          disabled: !isAdmin,
+          disabledReason: 'Disponível apenas para administradores',
+        },
+      ],
+    },
+    {
+      title: 'Conta',
+      items: [{ href: '/profile', label: 'Perfil', icon: MdPerson }],
+    },
   ];
 
-  const navigation = (
-    <nav className="flex flex-1 flex-col gap-1 p-3">
-      {links.map(({ href, label, icon: Icon, disabled }) => {
-        const isActive = pathname === href || pathname.startsWith(`${href}/`);
+  const brand = (
+    <div
+      className={`flex items-center gap-3 border-b border-white/5 px-4 py-4 ${
+        collapsed ? 'justify-center px-0' : ''
+      }`}>
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-lg shadow-emerald-500/20">
+        <MdTableChart aria-hidden className="text-lg" />
+      </span>
+      {!collapsed && (
+        <motion.span
+          initial={{ opacity: 0, x: -6 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.18 }}
+          className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-white">Controle de ITR</span>
+          <span className="block truncate text-[11px] text-slate-400">Painel administrativo</span>
+        </motion.span>
+      )}
+    </div>
+  );
 
-        if (disabled) {
-          return (
-            <span
-              key={href}
-              title="Disponível apenas para administradores"
-              className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-500">
-              <Icon aria-hidden className="text-lg" /> {label}
-            </span>
-          );
-        }
-
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setMobileMenu(false)}
-            className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
-              isActive ? 'bg-slate-800 font-medium text-white' : 'text-slate-300 hover:bg-slate-800'
-            }`}>
-            <Icon aria-hidden className="text-lg" /> {label}
-          </Link>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={() => setOpenConfirmModal(true)}
-        className="mt-auto flex items-center gap-3 rounded-md px-3 py-2 text-sm text-red-300 transition hover:bg-slate-800">
-        <MdLogout aria-hidden className="text-lg" /> Sair
-      </button>
-    </nav>
+  const footerHelp = !collapsed && (
+    <button
+      type="button"
+      onClick={() => setOpenShortcuts(true)}
+      className="mx-3 mb-3 flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2 text-xs text-slate-400 focus-ring transition hover:bg-white/[0.06] hover:text-slate-200">
+      <span className="flex items-center gap-2">
+        <MdKeyboardCommandKey aria-hidden /> Atalhos
+      </span>
+      <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[10px]">
+        ?
+      </kbd>
+    </button>
   );
 
   return (
     <>
-      {/* Mobile trigger */}
-      <button
-        type="button"
-        onClick={() => setMobileMenu(true)}
-        aria-label="Abrir menu"
-        className="fixed top-3 left-3 z-40 rounded-md bg-slate-900 p-2 text-white sm:hidden">
-        <MdMenu aria-hidden />
-      </button>
+      {/* ── Desktop rail ──────────────────────────────────────────────── */}
+      <motion.aside
+        animate={{ width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH }}
+        transition={springPanel}
+        style={{ width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH }}
+        className="sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/5 bg-gradient-to-b from-rail-900 to-rail-800 sm:flex">
+        {brand}
 
-      {/* Desktop */}
-      <aside className="hidden min-h-screen w-60 flex-col border-r border-slate-700 bg-slate-900 sm:flex">
-        <div className="border-b border-slate-700 p-4">
-          <p id="sidebar-user-name" className="truncate text-sm font-medium text-white">
-            {loggedInUser?.name || 'Usuário'}
-          </p>
-          <p id="sidebar-user-email" className="truncate text-xs text-slate-400">
-            {loggedInUser?.email}
-          </p>
-          {isAdmin && (
-            <span className="mt-2 inline-block rounded bg-emerald-600/20 px-2 py-0.5 text-[10px] font-medium text-emerald-400 uppercase">
-              Admin
-            </span>
-          )}
-        </div>
-        {navigation}
-      </aside>
+        <SidebarNav groups={groups} collapsed={collapsed} instanceId="rail" />
 
-      {/* Mobile drawer */}
-      {mobileMenu && (
-        <div className="fixed inset-0 z-50 flex sm:hidden">
-          <div
-            role="presentation"
-            onClick={() => setMobileMenu(false)}
-            className="absolute inset-0 bg-black/50"
-          />
-          <aside className="relative flex w-64 flex-col bg-slate-900">
-            <button
-              type="button"
-              onClick={() => setMobileMenu(false)}
-              aria-label="Fechar menu"
-              className="absolute top-3 right-3 text-slate-400">
-              <MdClose aria-hidden />
-            </button>
-            <div className="border-b border-slate-700 p-4 pr-10">
-              <p className="truncate text-sm font-medium text-white">
-                {loggedInUser?.name || 'Usuário'}
-              </p>
-              <p className="truncate text-xs text-slate-400">{loggedInUser?.email}</p>
-            </div>
-            {navigation}
-          </aside>
-        </div>
-      )}
+        {footerHelp}
+
+        <SidebarUserCard
+          name={loggedInUser?.name}
+          email={loggedInUser?.email}
+          isAdmin={isAdmin}
+          collapsed={collapsed}
+          onLogout={() => setOpenConfirmModal(true)}
+          onRefreshSession={handleRefreshSession}
+        />
+
+        {/* Collapse handle straddles the border, the way editors do it. */}
+        <motion.button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          aria-expanded={!collapsed}
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.92 }}
+          transition={springSnap}
+          className="absolute top-20 -right-3 z-20 grid size-6 place-items-center rounded-full border border-white/10 bg-slate-800 text-slate-300 shadow-md focus-ring transition-colors hover:bg-slate-700 hover:text-white">
+          {collapsed ? <MdChevronRight aria-hidden /> : <MdChevronLeft aria-hidden />}
+        </motion.button>
+      </motion.aside>
+
+      {/* ── Mobile drawer ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 flex sm:hidden">
+            <motion.div
+              role="presentation"
+              onClick={() => setMobileOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            />
+
+            <motion.aside
+              ref={drawerRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu de navegação"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={springPanel}
+              // Swipe-to-close: the gesture users already expect from native
+              // drawers, and it keeps the close button from being the only exit.
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0.4, right: 0 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -70 || info.velocity.x < -450) setMobileOpen(false);
+              }}
+              className="relative flex w-[17rem] flex-col bg-gradient-to-b from-rail-900 to-rail-800 shadow-overlay">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Fechar menu"
+                className="absolute top-4 right-3 rounded-md p-1.5 text-slate-400 focus-ring transition hover:bg-white/10 hover:text-white">
+                <MdClose aria-hidden />
+              </button>
+
+              <div className="pr-10">{brand}</div>
+
+              <SidebarNav
+                groups={groups}
+                collapsed={false}
+                instanceId="drawer"
+                onNavigate={() => setMobileOpen(false)}
+              />
+
+              <SidebarUserCard
+                name={loggedInUser?.name}
+                email={loggedInUser?.email}
+                isAdmin={isAdmin}
+                collapsed={false}
+                onLogout={() => {
+                  setMobileOpen(false);
+                  setOpenConfirmModal(true);
+                }}
+                onRefreshSession={handleRefreshSession}
+              />
+
+              {/* Drag affordance */}
+              <span
+                aria-hidden
+                className="absolute top-1/2 right-1 h-10 w-1 -translate-y-1/2 rounded-full bg-white/10"
+              />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       <ConfirmModal
         open={openConfirmModal}
         setOpen={setOpenConfirmModal}
+        variant="warning"
         title="Sair da conta"
-        message="Deseja encerrar sua sessão?"
+        message="Sua sessão será encerrada neste dispositivo."
         confirmLabel="Sair"
         confirmAction={handleLogout}
       />
       <AlertModal open={openAlertModal} setOpen={setOpenAlertModal} errorMessage={errorMessage} />
+      <ShortcutsModal open={openShortcuts} setOpen={setOpenShortcuts} />
     </>
   );
 }
